@@ -1,5 +1,5 @@
 import numpy as np
-from echantilloneur import generate_dataset
+from data_sampler import generate_dataset
 from walsh import generate_masks, apply_walsh
 from sklearn.linear_model import LassoLars
 from nk import NK_Landscape  
@@ -28,7 +28,7 @@ surrogate.fit(X_train, Y_train)
 random_sol = np.random.randint(2, size=N)
 score = landscape.eval(random_sol) 
 features = apply_walsh(random_sol, masks)
-prediction = surrogate.predict([features])[0]
+prediction = surrogate.predict([features])[0] # car on test sur une unique solution
 
 print("\nResultat du test\n")
 print(f"Score: {score:.4f}")
