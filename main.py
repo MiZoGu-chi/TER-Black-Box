@@ -20,8 +20,10 @@ X_train, Y_train = generate_dataset(N, NB_ENTRAINEMENT, masks, landscape.eval)
 
 print("apprentisage...")
 
-surrogate = LassoLars(alpha=0.0001, fit_intercept=False) 
+surrogate = LassoLars(alpha=0.001, fit_intercept=False)  # wO constante -> intercept
 surrogate.fit(X_train, Y_train)
+
+print(f"Moyenne : {surrogate.coef_[0]}")
 
 # test de la fonction surrogate
 
