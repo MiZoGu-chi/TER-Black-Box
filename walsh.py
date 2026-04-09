@@ -24,7 +24,9 @@ def apply_walsh(x, masks):
 def generate_masks(n, d_max): 
     masks = []
 
-    masks.append(np.zeros(n, dtype=int)) # ajout du masqe 0
+    m0 = np.zeros(n, dtype=int)
+    masks.append(m0) # ajout du masqe 0
+    print(f"Masque 0 : {m0}")
 
     # boucle sur les ordres
     for d in range(1, d_max + 1):
@@ -33,6 +35,6 @@ def generate_masks(n, d_max):
             mask[list(pos)] = 1
             masks.append(mask)
 
-            print(f"Masque {len(masks)} : {mask}")
+            print(f"Masque {len(masks) - 1} : {mask}")
 
     return masks
