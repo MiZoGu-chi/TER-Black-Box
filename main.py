@@ -1,5 +1,7 @@
 import argparse
 
+import os
+
 import numpy as np
 
 from sklearn.linear_model import Lars
@@ -20,13 +22,11 @@ from data_sampler import generate_dataset
 from walsh import generate_masks, apply_walsh
 from nk import NK_Landscape  
 
-from plot import plot_learning_curve
-from plot import plot_learning_curve_mae
-from plot import plot_compare_mae_lars_cg
-from plot import plot_compare_models_mae
+from plot import plot_compare_models
 
 
 MODELS = {
+    #'Lars' : Lars(fit_intercept=False),
     'LARS (Lasso)': LassoLars(alpha=0.001, fit_intercept=False),
     'LARS (LassoIc)': LassoLarsIC(criterion='bic', fit_intercept=False, noise_variance=1e-5),
     'CG (RIDGE)': Ridge(alpha=0.001, fit_intercept=False, solver='sparse_cg'),
@@ -50,6 +50,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     instance_name = f"instances/{args.N}/{args.K}/nk_{args.N}_{args.K}_{args.num}.txt"
+
+    if not os.path.exists(instance_name):
+        print(f"instance {instance_name} inexistante...")
+        exit()
+
     print(f"instance chargé'e : {instance_name}")
     
     landscape = NK_Landscape(instance_name)
@@ -84,8 +89,13 @@ if __name__ == "__main__":
 
             print(f"{model_name} - Itération : {t} ; {args.loss_function.upper()} : {loss_value}")
 
-    plot_compare_models_mae(res, args.D, f"nk_{args.N}_{args.K}_{args.num}") 
+    #model = args.models[0]
+    #surrogate = MODELS[model]
+    #preds = surrogate.predict(X_test)
+    #plot_compare_models(res, args.D, f"nk_{args.N}_{args.K}_{args.num}", Y_test, preds) 
     
+    plot_compare_models(res, args.D, f"nk_{args.N}_{args.K}_{args.num}") 
+
     if args.loss_function == 'mse':
         plt.ylabel("Mean Squared Error of fitness", fontsize=12)
         
