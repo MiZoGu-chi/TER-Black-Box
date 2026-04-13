@@ -36,3 +36,23 @@ def plot_compare_mae_lars_cg(maes_lars, maes_cg, D, instance_name):
     plt.grid(True, color='lightgray', linestyle='-', linewidth=0.5)
 
     plt.legend(title='method', loc='upper right', fontsize=12)
+
+def plot_compare_models_mae(models, D, instance_name):
+    plt.figure(figsize=(10, 6))
+
+    for model_name, maes in models.items():
+        plt.plot(maes, linewidth=2.0, alpha=0.8, label=model_name)
+
+    plt.title(f"Comparaison des modèles (D={D})\nInstance : {instance_name}", fontsize=16)
+    plt.xlabel("Sample size", fontsize=12)
+    plt.ylabel("Mean Abs. Error of fitness", fontsize=12)
+    
+    plt.grid(True, color='lightgray', linestyle='-', linewidth=0.5)
+
+    plt.legend(title='method', loc='upper right', fontsize=12)
+
+    #plt.yscale('log')
+
+    plt.tight_layout()
+
+    #plt.ylim(-0.05, 1.0)
