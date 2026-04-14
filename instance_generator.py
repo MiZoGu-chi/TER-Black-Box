@@ -15,11 +15,13 @@ def generate_nk_instance(N, K, num_instance):
     
     with open(filepath, 'w') as f:
         f.write(f"{N} {K}\n")
-        
+
         for i in range(N):
-            for j in range(K + 1):
-                neighbor = (i + j) % N
-                f.write(f"{neighbor}\n")
+            f.write(f"{i}\n")
+            
+            neighbors = random.sample([x for x in range(N) if x != i], K)
+            for n in neighbors:
+                f.write(f"{n}\n")
                 
         num_fitness_values = N * (2 ** (K + 1))
         for _ in range(num_fitness_values):

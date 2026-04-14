@@ -25,12 +25,40 @@ from nk import NK_Landscape
 from plot import plot_compare_models
 
 
+# MODELS = {
+#    'Lars' : Lars(n_nonzero_coefs=50, fit_intercept=False),
+#    'LassoLars': LassoLars(alpha=0.000, fit_intercept=False),
+#    'LassoLarsIC': LassoLarsIC(criterion='bic', fit_intercept=False, noise_variance=1e-5),
+#    'CG (Ridge)': Ridge(alpha=0.001, fit_intercept=False, solver='sparse_cg'),
+#    'ElasticNet': ElasticNet(alpha=0.001, fit_intercept=False),
+# }
+
 MODELS = {
-    #'Lars' : Lars(fit_intercept=False),
-    'LARS (Lasso)': LassoLars(alpha=0.001, fit_intercept=False),
-    'LARS (LassoIc)': LassoLarsIC(criterion='bic', fit_intercept=False, noise_variance=1e-5),
-    'CG (RIDGE)': Ridge(alpha=0.001, fit_intercept=False, solver='sparse_cg'),
-    'ElasticNet': ElasticNet(alpha=0.001, fit_intercept=False),
+    'lars': {
+        'model': Lars(n_nonzero_coefs=50, fit_intercept=False),
+        'name': 'Lars',
+        'color': 'tab:cyan'
+    },
+    'lasso_lars': {
+        'model': LassoLars(alpha=0.000, fit_intercept=False),
+        'name' : 'Lasso with Lars',
+        'color': 'tab:green'
+    },
+    'lasso_lars_ic': {
+        'model': LassoLarsIC(criterion='bic', fit_intercept=False, noise_variance=1e-5),
+        'name': 'Lasso with Lars using BIC',
+        'color': 'tab:orange'
+    },
+    'cg': {
+        'model': Ridge(alpha=0.001, fit_intercept=False, solver='sparse_cg'),
+        'name': 'CG (Ridge)',
+        'color': 'tab:red'
+    },
+    'elastic_net': {
+        'model': ElasticNet(alpha=0.001, fit_intercept=False),
+        'name': 'Elastic Net',
+        'color': 'tab:olive'
+    }
 }
 
 if __name__ == "__main__":
@@ -44,7 +72,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--D", type=int, default=2)
     
-    parser.add_argument("--models", nargs='+', choices=MODELS.keys(), default=list(MODELS.keys()))
+    parser.add_argument("--models", nargs='+', choices=MODELS.keys(), default=['cg', 'lasso_lars'])
     parser.add_argument("--loss_function", type=str, default='mae', choices=['mae', 'mse'])
     
     args = parser.parse_args()
@@ -69,11 +97,15 @@ if __name__ == "__main__":
     X_test, Y_test = generate_dataset(args.N, args.NB_TEST, masks, landscape.eval)
 
     res = {model_name: [] for model_name in args.models}
-  
-    for t in range(args.NB_ENTRAINEMENT):
+
+    START_SIZE = 50 # on "saute" la zone d'instabilité du lars normal
+    STEP_SIZE = 1
+
+    for t in range(START_SIZE, args.NB_ENTRAINEMENT, STEP_SIZE):
+    #for t in range(args.NB_ENTRAINEMENT):
         
         for model_name in args.models:
-            surrogate = MODELS[model_name]
+            surrogate = MODELS[model_name]['model']
             
             surrogate.fit(X_train[:(t+1)], Y_train[:(t+1)])
             
@@ -88,15 +120,16 @@ if __name__ == "__main__":
             res[model_name].append(loss_value)
 
             print(f"{model_name} - Itération : {t} ; {args.loss_function.upper()} : {loss_value}")
-
-    #model = args.models[0]
-    #surrogate = MODELS[model]
-    #preds = surrogate.predict(X_test)
-    #plot_compare_models(res, args.D, f"nk_{args.N}_{args.K}_{args.num}", Y_test, preds) 
     
-    plot_compare_models(res, args.D, f"nk_{args.N}_{args.K}_{args.num}") 
+    res_display = {
+            m: {
+                'name': MODELS[m]['name'], 
+                'color': MODELS[m]['color'],
+                'loss_values': res[m]
+            } 
+            for m in args.models
+        }
 
-    if args.loss_function == 'mse':
-        plt.ylabel("Mean Squared Error of fitness", fontsize=12)
+    plot_compare_models(res_display, args.D, f"nk_{args.N}_{args.K}_{args.num}", args.loss_function) 
         
     plt.show()
