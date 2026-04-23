@@ -1,0 +1,5 @@
+.venv/
+__pycache__/
+plots/
+instances/5
+instances/20

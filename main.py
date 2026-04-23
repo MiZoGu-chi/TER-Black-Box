@@ -4,77 +4,57 @@ import os
 
 import numpy as np
 
-from sklearn.linear_model import Lars
-from sklearn.linear_model import LassoLars
-from sklearn.linear_model import LassoLarsIC
 
-from sklearn.linear_model import Ridge
-from sklearn.linear_model import ElasticNet
+from sklearnex import patch_sklearn
+patch_sklearn()
+
+from sklearn.linear_model import Lars, LassoLars, LassoLarsIC, Ridge, ElasticNet
 
 from sklearn.ensemble import RandomForestRegressor
 
-from sklearn.metrics import mean_squared_error
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 import matplotlib.pyplot as plt
 
 from data_sampler import generate_dataset
-from walsh import generate_masks, apply_walsh
+from walsh import generate_masks, apply_walsh, apply_walsh_vectorized
 from nk import NK_Landscape  
 
 from plot import plot_compare_models
 
+from surrogate_benchmark import run_model_comparison
+from optimization import run_surrogate_optimization
 
-# MODELS = {
-#    'Lars' : Lars(n_nonzero_coefs=50, fit_intercept=False),
-#    'LassoLars': LassoLars(alpha=0.000, fit_intercept=False),
-#    'LassoLarsIC': LassoLarsIC(criterion='bic', fit_intercept=False, noise_variance=1e-5),
-#    'CG (Ridge)': Ridge(alpha=0.001, fit_intercept=False, solver='sparse_cg'),
-#    'ElasticNet': ElasticNet(alpha=0.001, fit_intercept=False),
-# }
+from models import MODELS
+from algorithm import ALGORITHMS
 
-MODELS = {
-    'lars': {
-        'model': Lars(n_nonzero_coefs=50, fit_intercept=False),
-        'name': 'Lars',
-        'color': 'tab:cyan'
-    },
-    'lasso_lars': {
-        'model': LassoLars(alpha=0.000, fit_intercept=False),
-        'name' : 'Lasso with Lars',
-        'color': 'tab:green'
-    },
-    'lasso_lars_ic': {
-        'model': LassoLarsIC(criterion='bic', fit_intercept=False, noise_variance=1e-5),
-        'name': 'Lasso with Lars using BIC',
-        'color': 'tab:orange'
-    },
-    'cg': {
-        'model': Ridge(alpha=0.001, fit_intercept=False, solver='sparse_cg'),
-        'name': 'CG (Ridge)',
-        'color': 'tab:red'
-    },
-    'elastic_net': {
-        'model': ElasticNet(alpha=0.001, fit_intercept=False),
-        'name': 'Elastic Net',
-        'color': 'tab:olive'
-    }
-}
+import warnings
+from sklearn.exceptions import ConvergenceWarning
+
+warnings.filterwarnings("ignore", category=ConvergenceWarning) # Sinon le terminal est pollué
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
-    parser.add_argument("--NB_ENTRAINEMENT", type=int, default=400)
-    parser.add_argument("--NB_TEST", type=int, default=1000)
     parser.add_argument("N", type=int)
     parser.add_argument("K", type=int)
     parser.add_argument("num", type=int)
-
     parser.add_argument("--D", type=int, default=2)
     
-    parser.add_argument("--models", nargs='+', choices=MODELS.keys(), default=['cg', 'lasso_lars'])
-    parser.add_argument("--loss_function", type=str, default='mae', choices=['mae', 'mse'])
-    
+    subparsers = parser.add_subparsers(dest="mode", required=True)
+
+    parser_compare = subparsers.add_parser('compare')
+    parser_compare.add_argument("--NB_ENTRAINEMENT", type=int, default=400)
+    parser_compare.add_argument("--NB_TEST", type=int, default=1000)
+    parser_compare.add_argument("--models", nargs='+', choices=MODELS.keys(), default=['cg', 'lasso_lars'])
+    parser_compare.add_argument("--loss_function", type=str, default='mae', choices=['mae', 'mse'])
+
+    parser_optimize = subparsers.add_parser('optimize')
+    parser_optimize.add_argument("--budget", type=int, default=1000)
+    parser_optimize.add_argument("--initial_pop_size", type=int, default=20)
+    #parser_optimize.add_argument("--window_size", type=int, default=30)
+    parser_optimize.add_argument("--surrogate", type=str, default='lasso_lars_ic', choices=MODELS.keys())
+    parser_optimize.add_argument("--algo", type=str, default='tabu', choices=ALGORITHMS.keys())
     args = parser.parse_args()
 
     instance_name = f"instances/{args.N}/{args.K}/nk_{args.N}_{args.K}_{args.num}.txt"
@@ -83,53 +63,20 @@ if __name__ == "__main__":
         print(f"instance {instance_name} inexistante...")
         exit()
 
-    print(f"instance chargé'e : {instance_name}")
-    
     landscape = NK_Landscape(instance_name)
+    print(f"Instance chargée : {instance_name}")
+    
 
-    print("generation des masques...")
+    print("Génération des masques...")
     masks = generate_masks(args.N, args.D)
 
-    print("generation du dataset d'entraînement...")
-    X_train, Y_train = generate_dataset(args.N, args.NB_ENTRAINEMENT, masks, landscape.eval)
-
-    print("génération du datast de test...")
-    X_test, Y_test = generate_dataset(args.N, args.NB_TEST, masks, landscape.eval)
-
-    res = {model_name: [] for model_name in args.models}
-
-    START_SIZE = 50 # on "saute" la zone d'instabilité du lars normal
-    STEP_SIZE = 1
-
-    for t in range(START_SIZE, args.NB_ENTRAINEMENT, STEP_SIZE):
-    #for t in range(args.NB_ENTRAINEMENT):
-        
-        for model_name in args.models:
-            surrogate = MODELS[model_name]['model']
+    match args.mode:
+        case 'compare':
+            run_model_comparison(args, landscape, masks, MODELS)
             
-            surrogate.fit(X_train[:(t+1)], Y_train[:(t+1)])
+        case 'optimize':
+            model = MODELS[args.surrogate]['model']
+            run_surrogate_optimization(args, landscape, masks, model, ALGORITHMS[args.algo])
             
-            predictions = surrogate.predict(X_test)
-            
-            match args.loss_function:
-                case 'mae':
-                    loss_value = mean_absolute_error(Y_test, predictions)
-                case 'mse':
-                    loss_value = mean_squared_error(Y_test, predictions)
-                
-            res[model_name].append(loss_value)
-
-            print(f"{model_name} - Itération : {t} ; {args.loss_function.upper()} : {loss_value}")
-    
-    res_display = {
-            m: {
-                'name': MODELS[m]['name'], 
-                'color': MODELS[m]['color'],
-                'loss_values': res[m]
-            } 
-            for m in args.models
-        }
-
-    plot_compare_models(res_display, args.D, f"nk_{args.N}_{args.K}_{args.num}", args.loss_function) 
-        
-    plt.show()
+        case _:
+            print(f"Mode '{args.mode}' non reconnu.")

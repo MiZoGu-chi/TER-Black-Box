@@ -71,6 +71,28 @@ def plot_compare_models(models, D, instance_name, loss_function):
 
     # save_plot(instance_name, D, loss_function + "_log")
 
+def plot_convergence_comparison(results, baseline_score=None):
+    plt.figure(figsize=(10, 6))
+    
+    # Si on reçoit une simple liste (un seul résultat)
+    if isinstance(results, list):
+        plt.plot(results, label='Optimization Run', linewidth=2)
+    # Si on reçoit un dictionnaire (plusieurs comparaisons, ex: FI vs Tabu)
+    elif isinstance(results, dict):
+        for label, history in results.items():
+            plt.plot(history, label=label, linewidth=2)
+    
+    if baseline_score is not None:
+        plt.axhline(y=baseline_score, color='red', linestyle='--', 
+                    label=f'Baseline: {baseline_score:.4f}')
+    
+    plt.title('Assisted surrogate convergence')
+    plt.xlabel('Budget')
+    plt.ylabel('Best Fitness')
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.legend()
+    plt.show()
+
 def save_plot(instance_name, D, loss_function):
     filename = f"{instance_name}_D={D}_{loss_function}"
     extension = ".png"

@@ -20,6 +20,11 @@ def apply_walsh(x, masks):
 
     return np.array(res)
 
+def apply_walsh_vectorized(solutions, masks):
+    masks = np.asarray(masks)
+    solutions = np.asarray(solutions)
+    return (-1) ** (solutions @ masks.T)
+
 # n : nb de paramêtres de la solution ; d_max ordre maximun (2 poour s'arrêter aux paires)
 def generate_masks(n, d_max): 
     masks = []
@@ -43,4 +48,4 @@ def generate_masks(n, d_max):
 
             print(f"Masque {len(masks) - 1} : {mask}")
 
-    return masks
+    return np.array(masks)

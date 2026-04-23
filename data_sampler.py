@@ -1,35 +1,46 @@
 import numpy as np
 
-from walsh import apply_walsh
+from walsh import apply_walsh_vectorized
 from walsh import generate_masks
 
-def random_black_box(x):
-    return np.random.random() 
+# NB : nb de solutions ; N : taille d'une solution
+def generate_random_solutions(N, NB):
+    return np.random.randint(2, size=(NB, N)) # N = 5, [0|1, 0|1, 0|1, 0|1, 0|1]
 
-def generate_dataset(N, NB, masks, objective_fun):
+def evaluate_and_transform(masks, objective_fun, solutions):
     X_train = []
-    Y_train = []
+    Y_train = [] 
 
-    for _ in range(NB):
-        random_sol = np.random.randint(2, size=N) # N = 5, [0|1, 0|1, 0|1, 0|1, 0|1]
-
-        score = objective_fun(random_sol)
-        features_walsh = apply_walsh(random_sol, masks)
+    for s in solutions:
+        score = objective_fun(s)
+        features_walsh = apply_walsh_vectorized(s, masks)
 
         X_train.append(features_walsh)
         Y_train.append(score)
-
+    
     return np.array(X_train), np.array(Y_train)
 
+# def transform(masks, solutions):
+#     X_train = []
 
-# test
-if __name__ == "__main__":
-    N = 20 # Dimension
-    D = 2 # Ordre max, avec D = 2 on vérifie uniquement les duos
-    NB = 10 # Budget / nombre de solutions qu'on peut générer
+#     for s in solutions:
+#         features_walsh = apply_walsh_vectorized(s, masks)
+
+#         X_train.append(features_walsh)
     
-    masks = generate_masks(N, D) # 211 masques, 0 parmi 20 (1) + 1 parmi 20 (20) + 2 parmi 20 (190)
-    print(f"Nombre de masques générés : {len(masks)}")
+#     return np.array(X_train)
+
+def transform(masks, solutions):
+    sol_array = np.array(solutions) 
+    mask_array = np.array(masks)    
     
-    #X, Y = generate_dataset(N, NB, masks, random_black_box)
+    intersections = np.dot(sol_array, mask_array.T) 
+    
+    return np.where(intersections % 2 == 0, 1, -1)
+
+def generate_dataset(N, NB, masks, objective_fun):
+    random_sols = generate_random_solutions(N, NB)
+    X_train, Y_train = evaluate_and_transform(masks, objective_fun, random_sols)
+    return X_train, Y_train
+
     

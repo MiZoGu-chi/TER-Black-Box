@@ -1,0 +1,2 @@
+envoyer un fichier vers Nautilus -> scp file1 file2 ... Nautilus:~/
+recuperer un fichier de Nautilus -> scp Nautilus:~/file1 Nautilus:~/file2 ./
