@@ -8,9 +8,9 @@ from walsh import apply_walsh
 
 from plot import plot_convergence_comparison
 
-from algorithm import get_black_box_fitness_fn, local_search, best_improvement, first_improvement
+from algorithm import get_black_box_fitness_fn, local_search, best_improvement, first_improvement, get_random_start, get_best_start, get_e_greedy_start
 
-def run_surrogate_optimization(args, landscape, masks, surrogate_model, search_fun):
+def run_surrogate_optimization(args, landscape, masks, surrogate_model, search_fun, start_fun):
 
     best_scores = []
 
@@ -42,7 +42,9 @@ def run_surrogate_optimization(args, landscape, masks, surrogate_model, search_f
     while budget > 0: 
         surrogate_model.fit(X_train, Y_train) 
 
-        candidate_sol = search_fun(best_sol, surrogate_model, masks)
+        start_sol = start_fun(best_sol, args.N)
+
+        candidate_sol = search_fun(start_sol, surrogate_model, masks)
 
         candidate_score = landscape.eval(candidate_sol) 
         budget -= 1
@@ -60,10 +62,10 @@ def run_surrogate_optimization(args, landscape, masks, surrogate_model, search_f
 
         best_scores.append(best_score)
 
-    #baseline = get_baseline_score(landscape, n_runs=30)
-    #print(f"Baseline calculée : {baseline:.6f}")
+    baseline = get_baseline_score(landscape, n_runs=10)
+    print(f"Baseline calculée : {baseline:.6f}")
 
-    #plot_convergence_comparison(best_scores, baseline)
+    plot_convergence_comparison(best_scores, baseline)
 
 
 def get_baseline_score(landscape, n_runs=30):

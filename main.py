@@ -26,7 +26,7 @@ from surrogate_benchmark import run_model_comparison
 from optimization import run_surrogate_optimization
 
 from models import MODELS
-from algorithm import ALGORITHMS
+from algorithm import ALGORITHMS, START_STRATEGIES
 
 import warnings
 from sklearn.exceptions import ConvergenceWarning
@@ -38,8 +38,9 @@ if __name__ == "__main__":
     
     parser.add_argument("N", type=int)
     parser.add_argument("K", type=int)
-    parser.add_argument("num", type=int)
+    parser.add_argument("--num", type=int, default=0)
     parser.add_argument("--D", type=int, default=2)
+    parser.add_argument("--seed", type=int, default=None)
     
     subparsers = parser.add_subparsers(dest="mode", required=True)
 
@@ -55,6 +56,7 @@ if __name__ == "__main__":
     #parser_optimize.add_argument("--window_size", type=int, default=30)
     parser_optimize.add_argument("--surrogate", type=str, default='lasso_lars_ic', choices=MODELS.keys())
     parser_optimize.add_argument("--algo", type=str, default='tabu', choices=ALGORITHMS.keys())
+    parser_optimize.add_argument("--start", type=str, default='rd', choices=START_STRATEGIES.keys())
     args = parser.parse_args()
 
     instance_name = f"instances/{args.N}/{args.K}/nk_{args.N}_{args.K}_{args.num}.txt"
@@ -62,6 +64,10 @@ if __name__ == "__main__":
     if not os.path.exists(instance_name):
         print(f"instance {instance_name} inexistante...")
         exit()
+
+    if args.seed is not None: 
+        np.random.seed(args.seed) # np.random.randint
+        random.seed(args.seed) # random.random()
 
     landscape = NK_Landscape(instance_name)
     print(f"Instance chargée : {instance_name}")
@@ -76,7 +82,7 @@ if __name__ == "__main__":
             
         case 'optimize':
             model = MODELS[args.surrogate]['model']
-            run_surrogate_optimization(args, landscape, masks, model, ALGORITHMS[args.algo])
+            run_surrogate_optimization(args, landscape, masks, model, ALGORITHMS[args.algo], START_STRATEGIES[args.start])
             
         case _:
             print(f"Mode '{args.mode}' non reconnu.")

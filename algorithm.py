@@ -2,16 +2,6 @@ import numpy as np
 import random
 from data_sampler import transform
 
-# def get_neighborhood(solution):
-#     neighbors = []
-
-#     for i in range(len(solution)):
-#         neighbor = solution.copy()
-#         neighbor[i] = 1 - neighbor[i] # on inverse le i-ème bit
-#         neighbors.append(neighbor)
-    
-#     return neighbors
-
 def get_neighborhood(solution):
     N = len(solution)
 
@@ -129,70 +119,27 @@ def local_search(current_best, fitness_fn, strategy_fn):
 
     return x_star
 
+def get_random_start(_best_sol, N): 
+    return np.random.randint(2, size=N)
+
+def get_best_start(best_sol, N):
+    return best_sol.copy()
+
+def get_e_greedy_start(best_sol, N, **kwargs):
+    epsilon = kwargs.get('epsilon', 0.5)
+
+    if random.random() < epsilon:
+        return np.random.randint(2, size=N)
+    return best_sol.copy()
+
 ALGORITHMS = {
     'fi': lambda sol, mod, msk: local_search(sol, get_surrogate_fitness_fn(mod, msk), first_improvement),
     'bi': lambda sol, mod, msk: local_search(sol, get_surrogate_fitness_fn(mod, msk), best_improvement),
     'tabu': lambda sol, mod, msk: tabu_search(sol, get_surrogate_fitness_fn(mod, msk), max_iter=100)
 }
 
-
-# version sans le design pattern strategie
-# def surrogate_tabu_search(current_best, surrogate_model, masks, max_iter=100):
-#     N = len(cuurent_solution)
-#     current_solution = current_best.copy()
-
-#     params1 = int(N // 10) 
-#     params2 = 10
-
-#     # Evaluation Surrogate
-#     current_solution_transformed = transform(masks, [current_solution])
-
-#     best_solution = current_solution.copy()
-#     current_fitness = surrogate_model.predict(current_solution_transformed)[0]
-#     best_fitness = current_fitness
-
-#     tabu_tenure = np.zeros((N))
-
-#     # pas de budget lorsqu'on utilise le modéle surrogate
-#     for iter_ in range(max_iter):
-
-#         # Génération et évalutaion des tous les voisins d'un coup
-#         neighborhood = get_neighborhood(current_solution)
-#         X_neighborhood = transform(masks, neighborhood)
-#         neighborhood_fitness = surrogate_model.predict(X_neighborhood)
-
-#         # ici exactement la même logique que l'autre algo
-#         best_delta = -float("inf")
-#         best_x = -1
-#         trouve = 1
-
-#         for x in range(N):
-#             new_fitness = neighborhood_fitness[x]
-
-#             delta = new_fitness - current_fitness
-
-#             if (tabu_tenure[x] <= iter_) or (new_fitness > best_fitness):
-
-#                 if (delta > best_delta):
-#                     best_x = x 
-#                     best_delta = delta 
-#                     trouve = 1 
-
-#                 elif (delta == best_delta):
-#                     trouve += 1 
-
-#                     if (random.randint(0, trouve) == 0): 
-#                         best_x = x
-
-#             # plus besoin de vérifier le budget
-
-#         current_fitness += best_delta
-#         current_solution[x] = 1 - current_solution[x]
-
-#         if (current_fitness > best_fitness): 
-#             best_fitness = self.current_fitness
-#             best_solution = np.copy(self.current_solution)    
-
-#         tabu_tenure[best_x] = int(params1) + random.randint(0, int(params2)) + iter_
-
-#     return best_solution
+START_STRATEGIES = {
+    'rd': get_random_start,
+    'best': get_best_start,
+    'egreedy': get_e_greedy_start
+}
