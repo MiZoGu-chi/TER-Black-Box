@@ -1,0 +1,1 @@
+utilise une simple commande pour lire le nb de 0

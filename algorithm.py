@@ -14,6 +14,7 @@ def get_neighborhood(solution):
 
 def tabu_search(current_best, fitness_fn, max_iter=100):
     N = len(current_best)
+    max_iter = N * 2
     current_solution = current_best.copy()
 
     params1 = int(N // 10) 

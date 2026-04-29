@@ -31,14 +31,13 @@ def generate_masks(n, d_max):
 
     m0 = np.zeros(n, dtype=int)
     masks.append(m0) # ajout du masqe 0
-    print(f"Masque 0 : {m0}")
+    #print(f"Masque 0 : {m0}")
 
     # boucle sur les ordres
     for d in range(1, d_max + 1):
         # pos -> liste des positions possibles de d élements ds un vecteur de taille n
 
-        print("combinations(range(n), d)")
-        print(combinations(range(n), d))
+        #print(combinations(range(n), d))
 
 
         for pos in combinations(range(n), d): 
@@ -46,6 +45,6 @@ def generate_masks(n, d_max):
             mask[list(pos)] = 1
             masks.append(mask)
 
-            print(f"Masque {len(masks) - 1} : {mask}")
+            #print(f"Masque {len(masks) - 1} : {mask}")
 
     return np.array(masks)

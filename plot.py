@@ -77,7 +77,6 @@ def plot_convergence_comparison(results, baseline_score=None):
     # Si on reçoit une simple liste (un seul résultat)
     if isinstance(results, list):
         plt.plot(results, label='Optimization Run', linewidth=2)
-    # Si on reçoit un dictionnaire (plusieurs comparaisons, ex: FI vs Tabu)
     elif isinstance(results, dict):
         for label, history in results.items():
             plt.plot(history, label=label, linewidth=2)
