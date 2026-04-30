@@ -13,4 +13,4 @@ module load python/3.11.4
 source env/bin/activate
 
 # évidemment à modifier
-python main.py 64 1 optimize --algo tabu
+python main.py optimize
