@@ -7,8 +7,8 @@ import random
 import multiprocessing
 from pathlib import Path
 
-from .base import Command  # Import de l'interface depuis le même dossier
-from analyze import analyser_fichier
+from .base import Command 
+from analyze import get_sparsity
 from walsh import generate_masks
 from nk import NK_Landscape
 from optimization import run_surrogate_optimization
@@ -16,6 +16,7 @@ from models import MODELS
 from algorithm import ALGORITHMS, START_STRATEGIES
 
 class OptimizeCommand(Command):
+    # à découpler de args plus tard
     def __init__(self, args):
         super().__init__(args)
         self.configs_N = [64]
@@ -50,7 +51,7 @@ class OptimizeCommand(Command):
         filename = f"{output_dir}/opti_{N}_{K}_{seed}_{args.algo}_{args.surrogate}.txt"
 
         with open(filename, "w") as f:
-            f.write(f"{N} {K} {seed} {args.algo} {args.surrogate}\n")
+            f.write(f"{N} {K} {args.D} {seed} {args.algo} {args.surrogate}\n")
             
             for sol, budg in history:
                 f.write(f"{sol} {budg}\n")
@@ -59,8 +60,8 @@ class OptimizeCommand(Command):
 
     def execute(self):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir = f"opti_output/run_{timestamp}"
-        os.makedirs(output_dir, exist_ok=True)
+        output_dir = Path(f"opti_output/run_{timestamp}") 
+        output_dir.mkdir(parents=True, exist_ok=True)
  
         Parallel(n_jobs=self.n_jobs)(delayed(self._task_wrapper)(N, K, seed, self.args, output_dir) 
             for N in self.configs_N 
@@ -74,6 +75,6 @@ class OptimizeCommand(Command):
             stats = get_sparsity(f)
             if stats:
                 s, z, t = stats
-                print(f"[{f.name}] : {percentage:.1f}% zeros ({zeros}/{total})")
+                print(f"[{f.name}] : {s:.1f}% zeros ({z}/{t})")
             else:
                 print(f"[{f.name}] : Erreur de Parsing")
