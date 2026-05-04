@@ -8,10 +8,10 @@ import multiprocessing
 from pathlib import Path
 
 from .base import Command 
-from analyze import get_sparsity
+from io_utils import OptimizationResult
 from walsh import generate_masks
 from nk import NK_Landscape
-from optimization import run_surrogate_optimization
+from surrogate_optimization import run_surrogate_optimization
 from models import MODELS
 from algorithm import ALGORITHMS, START_STRATEGIES
 
@@ -72,9 +72,9 @@ class OptimizeCommand(Command):
         result_files = sorted(output_dir.glob("opti_*.txt"))
 
         for f in result_files:
-            stats = get_sparsity(f)
-            if stats:
-                s, z, t = stats
+            try:
+                res = OptimizationResult(f)
+                s, z, t = res.sparsity
                 print(f"[{f.name}] : {s:.1f}% zeros ({z}/{t})")
-            else:
+            except Exception:
                 print(f"[{f.name}] : Erreur de Parsing")

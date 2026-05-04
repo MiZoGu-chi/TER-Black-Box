@@ -12,7 +12,7 @@ def get_neighborhood(solution):
 
     return neighborhood
 
-def tabu_search(current_best, fitness_fn, max_iter=100):
+def tabu_search(current_best, fitness_fn, max_iter=None):
     N = len(current_best)
     max_iter = N * 2
     current_solution = current_best.copy()
@@ -136,7 +136,7 @@ def get_e_greedy_start(best_sol, N, **kwargs):
 ALGORITHMS = {
     'fi': lambda sol, mod, msk: local_search(sol, get_surrogate_fitness_fn(mod, msk), first_improvement),
     'bi': lambda sol, mod, msk: local_search(sol, get_surrogate_fitness_fn(mod, msk), best_improvement),
-    'tabu': lambda sol, mod, msk: tabu_search(sol, get_surrogate_fitness_fn(mod, msk), max_iter=100)
+    'tabu': lambda sol, mod, msk: tabu_search(sol, get_surrogate_fitness_fn(mod, msk))
 }
 
 START_STRATEGIES = {

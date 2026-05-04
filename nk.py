@@ -1,4 +1,7 @@
 
+
+from collections import defaultdict
+
 class NK_Landscape:
 
     def __init__(self, file, max_nb_turn=-1):
@@ -45,4 +48,11 @@ class NK_Landscape:
 
         return fitness/self.N
 
+    def get_interaction(self):
 
+        interactions = defaultdict(list)
+
+        for link in self.links:
+            neighborhood = sorted(link[:-1])
+
+        pass

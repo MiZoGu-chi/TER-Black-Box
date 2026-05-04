@@ -1,57 +1,29 @@
-import ast
-import numpy as np
 import argparse
 import pprint
-
+import numpy as np
 from pathlib import Path
-from walsh import generate_masks
-
 from collections import defaultdict
 
-# factoriser la lecture de la dérnière ligne
+from walsh import generate_masks
+from io_utils import OptimizationResult
 
-def get_sparsity(filepath):
-    with open(filepath, 'r') as f:
+def get_dependency_graph(coefs, masks):
 
-        lines = f.readlines()
-        coef_line = lines[-1].strip()
-        coefs = np.array(ast.literal_eval(coef_line))
+    group_by_order = defaultdict(list)
 
-        zero_count = np.sum(coefs == 0.0)
-        total = len(coefs)
-        sparsity_pct = (zero_count / total) * 100
-            
-        return sparsity_pct, zero_count, total
+    significant_coefs = np.where(coefs != 0.0)[0]
 
-    return None
+    for c in significant_coefs:
+        mask = masks[c]
+        features = np.where(mask == 1)[0].tolist()
+        order = len(features)
 
-def get_dependency_graph(filepath, masks):
-    with open(filepath, 'r') as f:
+        if order > 0: # On ignore le masque 0
+            interaction_group = tuple(sorted(features))
+            val = float(coefs[c]) # coefs[c] retourne un np.float64
+            group_by_order[order].append((interaction_group, round(val, 5)))
 
-        lines = f.readlines()
-        coef_line = lines[-1].strip()
-        coefs = np.array(ast.literal_eval(coef_line))
-
-        inferred_edges = []
-
-        group_by_order = defaultdict(list)
-
-        significant_coefs = np.where(coefs != 0.0)[0]
-
-        for c in significant_coefs:
-            mask = masks[c]
-            features = np.where(mask == 1)[0].tolist()
-
-            order = len(features)
-
-            val = float(coefs[c]) # retourne un np.float64
-
-            # on ignore le masque 0
-            if order > 0: 
-                interaction_group = tuple(sorted(features))
-                group_by_order[order].append((interaction_group, round(val, 5)))
-
-        return dict(group_by_order)            
+    return dict(group_by_order)        
  
 
 if __name__ == "__main__":
@@ -62,37 +34,28 @@ if __name__ == "__main__":
 
     path = Path(args.path)
 
-    if path.is_file():
-        files = [path]
-    elif path.is_dir():
+    if path.is_dir():
         files = sorted(path.glob("opti_*.txt"))
+    elif path.is_file():
+        files = [path]
     else:
-        print(f"'{args.path}' n'est ni un fichier ni un dossier valide.")
+        print(f"{args.path} n'est ni un fichier ni un dossier valide.")
         files = []
 
     for file in files:
-        stats = get_sparsity(file)
-        if stats:
-            s, z, t = stats
+        try:
+            res = OptimizationResult(file)
+            
+            s, z, t = res.sparsity_stats
             print(f"[{file.name}] : {s:.1f}% zeros ({z}/{t})")
 
-            # graphe d'interaction
+            masks = generate_masks(res.meta['N'], res.meta['D'])
 
-            with open(file, 'r') as f:
-                header = f.readline().strip().split()
-                N = int(header[0])
-                D = int(header[2])
-
-            masks = generate_masks(N, D)
-
-            # peut etre refaire sand donner file
-            graph = get_dependency_graph(file, masks)
-
+            graph = get_dependency_graph(res.coefs, masks)
+            
             pprint.pprint(graph, width=80, sort_dicts=True)
 
-            #for ordre, interaction in sorted(graph.items()):
-                #print(f"  -> Ordre {ordre} : {len(interactions)} interactions trouvées")
-        else: 
-            print("erreur de parsing")
+        except Exception as e:
+            print(f"Erreur lors de l'analyse de {file.name} : {e}")
     
   
