@@ -16,13 +16,17 @@ from models import MODELS
 from algorithm import ALGORITHMS, START_STRATEGIES
 
 class OptimizeCommand(Command):
-    # à découpler de args plus tard
+    # à découpler de args plus tard ?
     def __init__(self, args):
         super().__init__(args)
         self.configs_N = [64]
         self.configs_K = [2]
         self.config_seeds = range(10)
+
+        print(f"SLURM_CPUS_PER_TASK : {os.environ.get('SLURM_CPUS_PER_TASK')}")
+        print(f"cpu count : {multiprocessing.cpu_count()}")
         self.n_jobs = int(os.environ.get('SLURM_CPUS_PER_TASK', multiprocessing.cpu_count()))
+        print(f"n_jobs : {self.n_jobs}")
 
     @staticmethod
     def _task_wrapper(N, K, seed, args, output_dir):

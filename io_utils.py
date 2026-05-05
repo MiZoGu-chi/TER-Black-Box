@@ -17,7 +17,9 @@ class OptimizationResult:
 
         meta = {
             'N': int(header[0]),
-            'D': int(header[2])
+            'K': int(header[1]),
+            'D': int(header[2]),
+            'seed': int(header[3])
         }
         
         coefs = np.array(ast.literal_eval(lines[-1]))

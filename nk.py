@@ -2,6 +2,8 @@
 
 from collections import defaultdict
 
+from itertools import combinations
+
 class NK_Landscape:
 
     def __init__(self, file, max_nb_turn=-1):
@@ -48,11 +50,21 @@ class NK_Landscape:
 
         return fitness/self.N
 
-    def get_interaction(self):
+    def get_real_interaction(self):
 
-        interactions = defaultdict(list)
+        interactions = defaultdict(set)
 
         for link in self.links:
-            neighborhood = sorted(link[:-1])
 
-        pass
+            # On enlève le dernier élément (la table de fitness)
+            # on sort pour ne pas avoir des paires (x, y) et (y, x)
+            neighborhood = sorted(link[:-1]) 
+            max_order = len(neighborhood) + 1 # D = K + 1
+
+            for order in range(1, max_order):
+
+                for combo in combinations(neighborhood, order):
+                    interaction_group = tuple(combo)
+                    interactions[order].add(interaction_group)
+
+        return {order: sorted(list(groups)) for order, groups in interactions.items()}
