@@ -4,14 +4,14 @@
 #SBATCH --error=logs/%x_%j.err  
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --time=5:00:00
+#SBATCH --cpus-per-task=20
+#SBATCH --mem-per-cpu=4G
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=1
-#SBATCH --qos=short           # priority/quality of service
-##SBATCH --exclusive             # resérve le noeud complet    
+#SBATCH --partition=intel-E5-2695
 
 # Environement to load
-module load python/3.11.4
+#module load python/3.11.4
 source env/bin/activate
 
 # évidemment à modifier
-python main.py optimize
+python3 main.py "$@"
