@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
             N = res.meta['N']
             K = res.meta['K']
-            D = res.meta['K']
+            D = res.meta['D']
             seed = res.meta['seed']
 
             masks = generate_masks(N, D)
@@ -71,7 +71,7 @@ if __name__ == "__main__":
             # Uniquement les intéractions 
             real_graph = landscape.get_real_interaction()
 
-            for order in (1, D + 1):
+            for order in range(1, D + 1):
                 # on extrait uniquement les tuples (item[0]) pour un ordre donné et transforme en set
                 surrogate_interactions = set(item[0] for item in surrogate_graph.get(order, []))
                 real_interactions = set(real_graph.get(order, []))
@@ -81,9 +81,9 @@ if __name__ == "__main__":
                 fn = real_interactions - surrogate_interactions
                 
                 print(f"Ordre {order}:")
-                print(f"Vrais Positifs : {len(tp)}")
-                print(f"Faux Positifs : {len(fp)}")
-                print(f"Faux Négatifs : {len(fn)}")
+                print(f"vrais positifs : {len(tp)}")
+                print(f"faux positifs : {len(fp)}")
+                print(f"faux négatifs : {len(fn)}")
 
         except Exception as e:
             print(f"Erreur lors de l'analyse de {file.name} : {e}")

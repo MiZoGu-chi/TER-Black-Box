@@ -59,9 +59,8 @@ class NK_Landscape:
             # On enlève le dernier élément (la table de fitness)
             # on sort pour ne pas avoir des paires (x, y) et (y, x)
             neighborhood = sorted(link[:-1]) 
-            max_order = len(neighborhood) + 1 # D = K + 1
 
-            for order in range(1, max_order):
+            for order in range(1, self.K + 2):
 
                 for combo in combinations(neighborhood, order):
                     interaction_group = tuple(combo)

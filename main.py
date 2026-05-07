@@ -33,6 +33,8 @@ if __name__ == "__main__":
     parser_compare.add_argument("--loss_function", type=str, default='mae', choices=['mae', 'mse'])
 
     parser_optimize = subparsers.add_parser('optimize')
+    parser_optimize.add_argument("--N", type=int, nargs='+', default=[64], choices=[64, 128, 256])
+    parser_optimize.add_argument("--K", type=int, nargs='+', default=[1], choices=[1, 2, 4, 8])
     parser_optimize.add_argument("--budget", type=int, default=1000)
     parser_optimize.add_argument("--initial_pop_size", type=int, default=20)
     parser_optimize.add_argument("--surrogate", type=str, default='lasso_lars', choices=MODELS.keys())
@@ -50,7 +52,6 @@ if __name__ == "__main__":
         'optimize': OptimizeCommand
     }
 
-    # Exécution
     if args.mode in commands:
         cmd = commands[args.mode](args)
         cmd.execute()

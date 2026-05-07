@@ -12,7 +12,7 @@ def get_neighborhood(solution):
 
     return neighborhood
 
-def tabu_search(current_best, fitness_fn, max_iter=None):
+def tabu_search(current_best, fitness_fn):
     N = len(current_best)
     max_iter = N * 2
     current_solution = current_best.copy()
@@ -76,7 +76,12 @@ def best_improvement(neighborhood_fitness, x_star_fitness):
     return None
 
 def first_improvement(neighborhood_fitness, x_star_fitness):
-    return next((i for i, fitness in enumerate(neighborhood_fitness) if fitness > x_star_fitness), None)
+    indices = np.random.permutation(len(neighborhood_fitness))
+
+    for i in indices:
+        if neighborhood_fitness[i] > x_star_fitness:
+            return i
+    return None
 
 def get_surrogate_fitness_fn(surrogate_model, masks): 
 
@@ -108,7 +113,7 @@ def local_search(current_best, fitness_fn, strategy_fn):
 
         neighborhood = get_neighborhood(x_star)
  
-        neighborhood_fitness = fitness_fn(neighborhood)
+        neighborhood_fitness = fitness_fn(neighborhood) # pas idéal pour FI de tout calculer d'un coup ?
         
         best_idx = strategy_fn(neighborhood_fitness, x_star_fitness)
 

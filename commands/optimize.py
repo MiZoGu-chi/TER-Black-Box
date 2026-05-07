@@ -19,26 +19,21 @@ class OptimizeCommand(Command):
     # à découpler de args plus tard ?
     def __init__(self, args):
         super().__init__(args)
-        self.configs_N = [64]
-        self.configs_K = [2]
-        self.config_seeds = range(10)
+        self.configs_N = args.N
+        self.configs_K = args.K
+        self.config_seeds = range(4)
+        self.config_n_instances = range(4)
 
-        print(f"SLURM_CPUS_PER_TASK : {os.environ.get('SLURM_CPUS_PER_TASK')}")
-        print(f"cpu count : {multiprocessing.cpu_count()}")
         self.n_jobs = int(os.environ.get('SLURM_CPUS_PER_TASK', multiprocessing.cpu_count()))
-        print(f"n_jobs : {self.n_jobs}")
+        # self.njobs = 10
 
     @staticmethod
-    def _task_wrapper(N, K, seed, args, output_dir):
+    def _task_wrapper(N, K, num, seed, args, output_dir):
 
         np.random.seed(seed)
         random.seed(seed)
 
-        # à modifier (ne pas demander N et K ds le parser)
-        args.N = N
-        args.K = K
-
-        instance_name = f"instances/{N}/{K}/nk_{N}_{K}_{args.num}.txt"
+        instance_name = f"instances/{N}/{K}/nk_{N}_{K}_{num}.txt"
 
         if not os.path.exists(instance_name):
             return
@@ -48,14 +43,14 @@ class OptimizeCommand(Command):
         model = MODELS[args.surrogate]['model']
         
 
-        best_fit, best_sol, history, surrogate_model = run_surrogate_optimization(args, landscape, masks, model, ALGORITHMS[args.algo], START_STRATEGIES[args.start])
+        best_fit, best_sol, history, surrogate_model, _ = run_surrogate_optimization(args.budget, N, args.initial_pop_size, landscape, masks, model, ALGORITHMS[args.algo], START_STRATEGIES[args.start])
 
         coefs = surrogate_model.coef_.tolist()
 
-        filename = f"{output_dir}/opti_{N}_{K}_{seed}_{args.algo}_{args.surrogate}.txt"
+        filename = f"{output_dir}/opti_{N}_{K}_{num}_{seed}_{args.algo}_{args.surrogate}.txt"
 
         with open(filename, "w") as f:
-            f.write(f"{N} {K} {args.D} {seed} {args.algo} {args.surrogate}\n")
+            f.write(f"{N} {K} {args.D} {args.num} {seed} {args.algo} {args.surrogate}\n")
             
             for sol, budg in history:
                 f.write(f"{sol} {budg}\n")
@@ -67,9 +62,10 @@ class OptimizeCommand(Command):
         output_dir = Path(f"opti_output/run_{timestamp}") 
         output_dir.mkdir(parents=True, exist_ok=True)
  
-        Parallel(n_jobs=self.n_jobs)(delayed(self._task_wrapper)(N, K, seed, self.args, output_dir) 
+        Parallel(n_jobs=self.n_jobs)(delayed(self._task_wrapper)(N, K, num, seed, self.args, output_dir) 
             for N in self.configs_N 
             for K in self.configs_K 
+            for num in self.config_n_instances
             for seed in self.config_seeds
         )
 

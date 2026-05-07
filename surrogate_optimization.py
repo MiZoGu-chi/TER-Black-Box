@@ -10,16 +10,16 @@ from plot import plot_convergence_comparison
 
 from algorithm import get_black_box_fitness_fn, local_search, best_improvement, first_improvement, get_random_start, get_best_start, get_e_greedy_start
 
-def run_surrogate_optimization(args, landscape, masks, surrogate_model, search_fun, start_fun):
+def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, surrogate_model, search_fun, start_fun):
 
-    history = []
+    fitness_history = []
+    surrogate_fidelity_history = [] # utilise pour la courbe de fitness prédite vs réel
 
-    budget = args.budget
     #window_size = args.window_size
     
-    budget -= args.initial_pop_size
+    n_evals = initial_pop_size
 
-    initial_population = generate_random_solutions(args.N, args.initial_pop_size)
+    initial_population = generate_random_solutions(N, initial_pop_size)
 
     X_train, Y_train = evaluate_and_transform(masks, landscape.eval, initial_population)
 
@@ -28,30 +28,37 @@ def run_surrogate_optimization(args, landscape, masks, surrogate_model, search_f
     best_sol = initial_population[best_fit_pos]
     best_fit = Y_train[best_fit_pos]
 
-    history.append((best_fit, budget))
+    fitness_history.append((best_fit, n_evals))
 
-    while budget > 0: 
+    while n_evals < budget: 
         surrogate_model.fit(X_train, Y_train) 
 
-        start_sol = start_fun(best_sol, args.N)
+        start_sol = start_fun(best_sol, N) # random par défaut, egreedy et best disponible
 
-        candidate_sol = search_fun(start_sol, surrogate_model, masks)
+        candidate_sol = search_fun(start_sol, surrogate_model, masks) # tabu par défaut, local search bi et fi disponible
 
-        candidate_score = landscape.eval(candidate_sol) 
-        budget -= 1
+        real_fitness = landscape.eval(candidate_sol) 
+        n_evals += 1
 
         candidate_walsh = transform(masks, [candidate_sol])
+
         X_train = np.vstack([X_train, candidate_walsh])
-        Y_train = np.append(Y_train, candidate_score)
+        Y_train = np.append(Y_train, real_fitness)
 
-        if candidate_score > best_fit:
-            best_fit = candidate_score
+        predicted_fitness = surrogate_model.predict(candidate_walsh)[0]
+
+        if n_evals % 10 == 0:
+            print(f"Iteration : {n_evals} ; Score prédit {predicted_fitness} ; Score réel {real_fitness}")
+            surrogate_fidelity_history.append((predicted_fitness, real_fitness, n_evals))
+
+        if real_fitness > best_fit:
+            best_fit = real_fitness
             best_sol = candidate_sol
-            print(f"Nouveau meilleur score : {best_fit:.6f} | Budget restant : {budget}")
+            print(f"Nouveau meilleur score : {best_fit:.6f} | Budget restant : {budget - n_evals}")
 
-            history.append((best_fit, budget))
+            fitness_history.append((best_fit, n_evals))
 
-    return best_fit, best_sol, history, surrogate_model
+    return best_fit, best_sol, fitness_history, surrogate_model, surrogate_fidelity_history
 
 
 def get_baseline_score(landscape, n_runs=30):
