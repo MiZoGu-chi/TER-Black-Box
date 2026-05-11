@@ -7,7 +7,7 @@ MODELS = {
         'color': 'tab:cyan'
     },
     'lasso_lars': {
-        'model': LassoLars(alpha=0.01, fit_intercept=False, eps=1e-4),
+        'model': LassoLars(alpha=0.0001, fit_intercept=False, eps=1e-4),
         'name' : 'Lasso with Lars',
         'color': 'tab:green'
     },

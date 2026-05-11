@@ -43,7 +43,7 @@ class OptimizeCommand(Command):
         model = MODELS[args.surrogate]['model']
         
 
-        best_fit, best_sol, history, surrogate_model, _ = run_surrogate_optimization(args.budget, N, args.initial_pop_size, landscape, masks, model, ALGORITHMS[args.algo], START_STRATEGIES[args.start])
+        best_fit, best_sol, history, surrogate_model, surrogate_fidelity_history = run_surrogate_optimization(args.budget, N, args.initial_pop_size, landscape, masks, model, ALGORITHMS[args.algo], START_STRATEGIES[args.start])
 
         coefs = surrogate_model.coef_.tolist()
 
@@ -52,9 +52,15 @@ class OptimizeCommand(Command):
         with open(filename, "w") as f:
             f.write(f"{N} {K} {args.D} {args.num} {seed} {args.algo} {args.surrogate}\n")
             
+            f.write("#\n")
             for sol, budg in history:
                 f.write(f"{sol} {budg}\n")
-                
+
+            f.write("#\n")
+            for pred, real, n_eval in surrogate_fidelity_history:
+                f.write(f"{pred} {real} {n_eval} \n")
+
+            f.write("#\n")                
             f.write(f"{coefs}\n")
 
     def execute(self):
