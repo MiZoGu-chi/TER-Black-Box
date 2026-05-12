@@ -10,6 +10,10 @@ from sklearn.metrics import mean_absolute_error
 from walsh import generate_masks
 from io_utils import OptimizationResult
 from nk import NK_Landscape
+from plot import plot_optimization, plot_aggregated_fidelity, plot_aggregated_fitness_distributions, plot_aggregated_convergence, save_df_as_image
+
+
+# à transformer en commande 
 
 def get_surrogate_interaction(coefs, masks):
 
@@ -75,6 +79,7 @@ def analyse_optimization_file(file):
 
     return {
         'filename' : file.name, 
+        'K': K,
         'surrogate_graph' : surrogate_graph,
         'real_graph' : real_graph,
         'sparsity' : res.sparsity,
@@ -86,7 +91,7 @@ def analyse_optimization_file(file):
 def create_metrics_dataframe(matrix):
     df = pd.DataFrame(matrix, columns=['TP', 'FP', 'FN'])
     df.index = range(1, len(df) + 1)
-    df.index.name = 'Order'  
+    df.index.name = 'K'  
 
     # gestion de la division par 0
     df['Precision'] = df['TP'] / np.maximum(df['TP'] + df['FP'], 1e-9)
@@ -127,11 +132,18 @@ if __name__ == "__main__":
         files = []
 
     agreged_matrix = None
+
     maes = []
+
+    max_fitness_by_K = defaultdict(list)
+    fitness_trajectories_by_K = defaultdict(list)
+    fidelity_samples_by_K = defaultdict(list)
 
     for file in files:
         try:
             result_data = analyse_optimization_file(file)
+
+            K = result_data['K']
             metrics = result_data['metrics']
 
             if agreged_matrix is None: agreged_matrix = np.zeros_like(metrics)
@@ -140,19 +152,38 @@ if __name__ == "__main__":
 
             display_res(result_data)
 
+            #plot_optimization(file)        
+
             if result_data['fidelity_history']:
+                fidelity_samples_by_K[K].extend(result_data['fidelity_history'])
+
                 preds = [pred for pred, _, _ in result_data['fidelity_history']]
                 reals = [real for _, real, _ in result_data['fidelity_history']]
 
                 mae = mean_absolute_error(reals, preds)
-                
                 maes.append(mae)
+
+            if result_data['fitness_history']:
+                fitness_trajectories_by_K[K].append(result_data['fitness_history'])
+
+                last_score = result_data['fitness_history'][-1][0]
+                max_fitness_by_K[K].append(last_score)
             
         except Exception as e:
             print(f"Erreur lors de l'analyse de {file.name} : {e}")
 
-    print(create_metrics_dataframe(agreged_matrix))
 
-    print(f'mae surrogate : {np.mean(maes):.5f}')
+    df_metrics = create_metrics_dataframe(agreged_matrix)
+    #print(create_metrics_dataframe(agreged_matrix))
+
+    print(f'mae surrogate : {np.mean(maes)}')
+
+    for K, scores in sorted(max_fitness_by_K.items()):
+        print(f'Score agrégé sur {len(scores)} runs pour K={K}: {np.mean(scores):.4f}')
+        print(f'Ecart-type sur {len(scores)} runs pour K={K}: {np.std(scores):.4f}')
     
+    plot_aggregated_fitness_distributions(max_fitness_by_K)
+    plot_aggregated_convergence(fitness_trajectories_by_K)
+    plot_aggregated_fidelity(fidelity_samples_by_K)
+    save_df_as_image(df_metrics)
   

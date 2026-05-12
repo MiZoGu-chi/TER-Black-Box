@@ -6,8 +6,6 @@ from data_sampler import generate_random_solutions, evaluate_and_transform, tran
 
 from walsh import apply_walsh
 
-from plot import plot_convergence_comparison
-
 from algorithm import get_black_box_fitness_fn, local_search, best_improvement, first_improvement, get_random_start, get_best_start, get_e_greedy_start
 
 def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, surrogate_model, search_fun, start_fun):
@@ -57,6 +55,8 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
             print(f"Nouveau meilleur score : {best_fit:.6f} | Budget restant : {budget - n_evals}")
 
             fitness_history.append((best_fit, n_evals))
+
+    fitness_history.append((best_fit, n_evals))
 
     return best_fit, best_sol, fitness_history, surrogate_model, surrogate_fidelity_history
 

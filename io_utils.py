@@ -24,7 +24,7 @@ class OptimizationResult:
             'num' : int(header[3]),
             'seed': int(header[4]),
             'algo': header[5],      
-            'surrogate': header[6]  
+            'surrogate': header[6],
         }
         
         fitness_history = [(float(line.split()[0]), int(line.split()[1])) for line in fitness_section.strip().split('\n')]

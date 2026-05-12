@@ -14,6 +14,7 @@ from nk import NK_Landscape
 from surrogate_optimization import run_surrogate_optimization
 from models import MODELS
 from algorithm import ALGORITHMS, START_STRATEGIES
+from plot import plot_optimization
 
 class OptimizeCommand(Command):
     # à découpler de args plus tard ?
@@ -82,5 +83,7 @@ class OptimizeCommand(Command):
                 res = OptimizationResult(f)
                 s, z, t = res.sparsity
                 print(f"[{f.name}] : {s:.1f}% zeros ({z}/{t})")
+
+                plot_optimization(f)
             except Exception:
                 print(f"[{f.name}] : Erreur de Parsing")
