@@ -59,7 +59,7 @@ class OptimizeCommand(Command):
 
             f.write("#\n")
             for pred, real, n_eval in surrogate_fidelity_history:
-                f.write(f"{pred} {real} {n_eval} \n")
+                f.write(f"{pred} {real} {n_eval}\n")
 
             f.write("#\n")                
             f.write(f"{coefs}\n")
@@ -84,6 +84,6 @@ class OptimizeCommand(Command):
                 s, z, t = res.sparsity
                 print(f"[{f.name}] : {s:.1f}% zeros ({z}/{t})")
 
-                plot_optimization(f)
+                #plot_optimization(f)
             except Exception:
                 print(f"[{f.name}] : Erreur de Parsing")

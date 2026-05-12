@@ -56,7 +56,7 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
 
             fitness_history.append((best_fit, n_evals))
 
-    fitness_history.append((best_fit, n_evals))
+    fitness_history.append((best_fit, budget))
 
     return best_fit, best_sol, fitness_history, surrogate_model, surrogate_fidelity_history
 
