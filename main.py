@@ -5,7 +5,7 @@ import numpy as np
 from sklearnex import patch_sklearn
 from sklearn.exceptions import ConvergenceWarning
 
-from commands import OptimizeCommand, CompareCommand
+from commands import OptimizeCommand, CompareCommand, AnalyzeCommand
 from models import MODELS
 from algorithm import ALGORITHMS, START_STRATEGIES
 
@@ -41,6 +41,9 @@ if __name__ == "__main__":
     parser_optimize.add_argument("--algo", type=str, default='tabu', choices=ALGORITHMS.keys())
     parser_optimize.add_argument("--start", type=str, default='rd', choices=START_STRATEGIES.keys())
 
+    parser_analyze = subparsers.add_parser('analyze')
+    parser_analyze.add_argument("path", type=str)
+
     args = parser.parse_args()
 
     if args.seed is not None: 
@@ -49,7 +52,8 @@ if __name__ == "__main__":
 
     commands = {
         'compare': CompareCommand,
-        'optimize': OptimizeCommand
+        'optimize': OptimizeCommand,
+        'analyze': AnalyzeCommand
     }
 
     if args.mode in commands:
