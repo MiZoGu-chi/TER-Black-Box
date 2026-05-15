@@ -14,10 +14,9 @@ if [[ "$CLUSTER_NAME" == *"nautilus"* ]]; then
 elif [[ "$CLUSTER_NAME" == "stargate" ]]; then
     export NEED_MODULE=0
     sbatch \
-        --partition=intel-E5-2695 \
-        --exclusive \
-        --cpus-per-task=15 \
-        --mem-per-cpu=6G \
+        --partition=ram \
+        --cpus-per-task=40 \
+        --mem-per-cpu=10G \
         --nodes=1 \
         slurm/runscript_array_job_slurm.sh "$@"
 fi
