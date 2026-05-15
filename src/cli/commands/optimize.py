@@ -8,13 +8,14 @@ import multiprocessing
 from pathlib import Path
 
 from .base import Command 
-from io_utils import OptimizationResult
-from walsh import generate_masks
-from nk import NK_Landscape
-from surrogate_optimization import run_surrogate_optimization
-from models import MODELS
-from algorithm import ALGORITHMS, START_STRATEGIES
-from plot import plot_optimization
+from src.core.walsh import generate_masks
+from src.core.nk import NK_Landscape
+from src.core.surrogate_optimization import run_surrogate_optimization
+from src.core.models import MODELS
+from src.core.algorithm import ALGORITHMS, START_STRATEGIES
+
+from src.utils.io_utils import OptimizationResult
+from src.utils.plot import plot_optimization
 
 class OptimizeCommand(Command):
     # à découpler de args plus tard ?
@@ -66,7 +67,7 @@ class OptimizeCommand(Command):
 
     def execute(self):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir = Path(f"opti_output/run_{timestamp}") 
+        output_dir = Path(f"results/opti_output/run_{timestamp}") 
         output_dir.mkdir(parents=True, exist_ok=True)
  
         Parallel(n_jobs=self.n_jobs)(delayed(self._task_wrapper)(N, K, num, seed, self.args, output_dir) 

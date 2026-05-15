@@ -2,11 +2,9 @@ import numpy as np
 
 np.set_printoptions(threshold=256)
 
-from data_sampler import generate_random_solutions, evaluate_and_transform, transform
-
-from walsh import apply_walsh
-
-from algorithm import get_black_box_fitness_fn, local_search, best_improvement, first_improvement, get_random_start, get_best_start, get_e_greedy_start
+from src.core.data_sampler import generate_random_solutions, evaluate_and_transform, transform
+from src.core.walsh import apply_walsh
+from src.core.algorithm import get_black_box_fitness_fn, local_search, best_improvement, first_improvement, get_random_start, get_best_start, get_e_greedy_start
 
 def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, surrogate_model, search_fun, start_fun):
 

@@ -1,7 +1,6 @@
 import numpy as np
 
-from walsh import apply_walsh_vectorized
-from walsh import generate_masks
+from src.core.walsh import apply_walsh_vectorized, generate_masks
 
 # NB : nb de solutions ; N : taille d'une solution
 def generate_random_solutions(N, NB):

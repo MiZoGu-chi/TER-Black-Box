@@ -5,11 +5,13 @@ from collections import defaultdict
 from sklearn.metrics import mean_absolute_error
 
 from .base import Command  
-from walsh import generate_masks
-from io_utils import OptimizationResult
-from nk import NK_Landscape
-from plot import plot_optimization, plot_aggregated_fidelity, plot_aggregated_fitness_distributions, plot_aggregated_convergence, save_df_as_image
-from evaluation import get_surrogate_interaction, compare_interaction, compute_confusion_metrics
+
+from src.core.walsh import generate_masks
+from src.core.nk import NK_Landscape
+
+from src.utils.io_utils import OptimizationResult
+from src.utils.plot import plot_optimization, plot_aggregated_fidelity, plot_aggregated_fitness_distributions, plot_aggregated_convergence, save_df_as_image
+from src.utils.evaluation import get_surrogate_interaction, compare_interaction, compute_confusion_metrics
 
 class AnalyzeCommand(Command):
     # crash sur des folders avec des run sur des N / D différents 

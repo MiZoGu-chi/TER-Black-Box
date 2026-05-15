@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 import os
 
-from io_utils import OptimizationResult
+from src.utils.io_utils import OptimizationResult
 
 
 def plot_compare_and_scatter_models(models, D, instance_name, f, f_hat, loss_function="mae"):
@@ -201,11 +201,11 @@ def save_plot(base_name, *tags):
             filename += f"_{tag}"
             
     extension = ".png"
-    path = f"plots/{filename}{extension}"
+    path = f"results/plots/{filename}{extension}"
     
     counter = 1
     while os.path.exists(path):
-        path = f"plots/{filename}_{counter}{extension}"
+        path = f"results/plots/{filename}_{counter}{extension}"
         counter += 1
     
     plt.savefig(path)

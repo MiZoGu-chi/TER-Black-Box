@@ -1,6 +1,7 @@
 import numpy as np
 import random
-from data_sampler import transform
+
+from src.core.data_sampler import transform
 
 def get_neighborhood(solution):
     N = len(solution)

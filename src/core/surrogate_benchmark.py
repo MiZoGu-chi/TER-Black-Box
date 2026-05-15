@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
+
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-from data_sampler import generate_dataset
-from plot import plot_compare_models
+
+from src.core.data_sampler import generate_dataset
+from src.utils.plot import plot_compare_models
 
 def run_model_comparison(args, landscape, masks, models_dict):
     print("Génération du dataset d'entraînement...")

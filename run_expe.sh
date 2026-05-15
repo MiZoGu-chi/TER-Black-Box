@@ -9,7 +9,7 @@ if [[ "$CLUSTER_NAME" == *"nautilus"* ]]; then
         --cpus-per-task=20 \
         --mem-per-cpu=4G \
         --nodes=1 \
-        runscript_array_job_slurm.sh "$@"
+        slurm/runscript_array_job_slurm.sh "$@"
 
 elif [[ "$CLUSTER_NAME" == "stargate" ]]; then
     export NEED_MODULE=0
@@ -17,5 +17,5 @@ elif [[ "$CLUSTER_NAME" == "stargate" ]]; then
         --partition=intel-E5-2695 \
         --exclusive \
         --nodes=1 \
-        runscript_array_job_slurm.sh "$@"
+        slurm/runscript_array_job_slurm.sh "$@"
 fi

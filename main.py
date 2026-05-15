@@ -2,12 +2,13 @@ import argparse
 import warnings
 import random
 import numpy as np
+
 from sklearnex import patch_sklearn
 from sklearn.exceptions import ConvergenceWarning
 
-from commands import OptimizeCommand, CompareCommand, AnalyzeCommand
-from models import MODELS
-from algorithm import ALGORITHMS, START_STRATEGIES
+from src.cli.commands import OptimizeCommand, CompareCommand, AnalyzeCommand
+from src.core.models import MODELS
+from src.core.algorithm import ALGORITHMS, START_STRATEGIES
 
 def setup_environment():
     patch_sklearn()

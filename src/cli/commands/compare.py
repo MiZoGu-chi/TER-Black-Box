@@ -1,9 +1,9 @@
 import os 
 from .base import Command
-from surrogate_benchmark import run_model_comparison
-from walsh import generate_masks
-from nk import NK_Landscape
-from models import MODELS
+from src.core.surrogate_benchmark import run_model_comparison
+from src.core.walsh import generate_masks
+from src.core.nk import NK_Landscape
+from src.core.models import MODELS
 
 class CompareCommand(Command):
     def execute(self):
