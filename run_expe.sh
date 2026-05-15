@@ -16,6 +16,8 @@ elif [[ "$CLUSTER_NAME" == "stargate" ]]; then
     sbatch \
         --partition=intel-E5-2695 \
         --exclusive \
+        --cpus-per-task=15 \
+        --mem-per-cpu=6G \
         --nodes=1 \
         slurm/runscript_array_job_slurm.sh "$@"
 fi

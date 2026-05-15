@@ -23,8 +23,8 @@ class OptimizeCommand(Command):
         super().__init__(args)
         self.configs_N = args.N
         self.configs_K = args.K
-        self.config_seeds = range(4)
-        self.config_n_instances = range(4)
+        self.config_seeds = range(10)
+        self.config_n_instances = range(10)
 
         self.n_jobs = int(os.environ.get('SLURM_CPUS_PER_TASK', multiprocessing.cpu_count()))
         # self.njobs = 10
