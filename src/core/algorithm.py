@@ -53,7 +53,7 @@ def tabu_search(current_best, fitness_fn):
                 elif (delta == best_delta):
                     trouve += 1 
 
-                    if (random.randint(0, trouve) == 0): 
+                    if (np.random.randint(0, trouve + 1) == 0): 
                         best_x = x
 
             # plus besoin de vérifier le budget
@@ -65,7 +65,7 @@ def tabu_search(current_best, fitness_fn):
             best_fitness = current_fitness
             best_solution = np.copy(current_solution)    
 
-        tabu_tenure[best_x] = int(params1) + random.randint(0, int(params2)) + iter_
+        tabu_tenure[best_x] = int(params1) + np.random.randint(0, int(params2) + 1) + iter_
 
     return best_solution
 
@@ -114,7 +114,7 @@ def local_search(current_best, fitness_fn, strategy_fn):
 
         neighborhood = get_neighborhood(x_star)
  
-        neighborhood_fitness = fitness_fn(neighborhood) # pas idéal pour FI de tout calculer d'un coup ?
+        neighborhood_fitness = fitness_fn(neighborhood) # pas idéal pour FI car non séquentiel ? (on génére toutes les solutions d'un cooup au lieu de les parcourir une par une)
         
         best_idx = strategy_fn(neighborhood_fitness, x_star_fitness)
 
@@ -135,14 +135,26 @@ def get_best_start(best_sol, N):
 def get_e_greedy_start(best_sol, N, **kwargs):
     epsilon = kwargs.get('epsilon', 0.5)
 
-    if random.random() < epsilon:
+    if np.random.random() < epsilon:
         return np.random.randint(2, size=N)
     return best_sol.copy()
+
+def fi_baseline(sol, fit_fn):
+    return local_search(sol, fit_fn, first_improvement)
+
+def bi_baseline(sol, fit_fn):
+    return local_search(sol, fit_fn, best_improvement)
 
 ALGORITHMS = {
     'fi': lambda sol, mod, msk: local_search(sol, get_surrogate_fitness_fn(mod, msk), first_improvement),
     'bi': lambda sol, mod, msk: local_search(sol, get_surrogate_fitness_fn(mod, msk), best_improvement),
     'tabu': lambda sol, mod, msk: tabu_search(sol, get_surrogate_fitness_fn(mod, msk))
+}
+
+BASELINE_ALGORITHMS = {
+    'fi': fi_baseline,
+    'bi': bi_baseline,
+    'tabu': tabu_search 
 }
 
 START_STRATEGIES = {

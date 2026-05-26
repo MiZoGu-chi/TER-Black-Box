@@ -3,8 +3,6 @@ import numpy as np
 np.set_printoptions(threshold=256)
 
 from src.core.data_sampler import generate_random_solutions, evaluate_and_transform, transform
-from src.core.walsh import apply_walsh
-from src.core.algorithm import get_black_box_fitness_fn, local_search, best_improvement, first_improvement, get_random_start, get_best_start, get_e_greedy_start
 
 def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, surrogate_model, search_fun, start_fun):
 
@@ -56,19 +54,16 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
 
     fitness_history.append((best_fit, budget))
 
-    return best_fit, best_sol, fitness_history, surrogate_model, surrogate_fidelity_history
+    final_scatter_data = evaluate_final_surrogate(N, landscape, masks, surrogate_model)
 
+    return best_fit, best_sol, fitness_history, surrogate_model, surrogate_fidelity_history, final_scatter_data
 
-def get_baseline_score(landscape, n_runs=30):
-    scores = [] 
-    
-    fit_fn = get_black_box_fitness_fn(landscape)
-    
-    for _ in range(n_runs):
-        start_sol = np.random.randint(2, size=landscape.N)
+def evaluate_final_surrogate(N, landscape, masks, final_surrogate, n_samples=1000):
+    solutions = np.random.randint(2, size=(n_samples, N))
 
-        optimum_local_sol = local_search(start_sol, fit_fn, best_improvement) 
-        
-        scores.append(landscape.eval(optimum_local_sol))
-        
-    return np.mean(scores)
+    real_fitness = [landscape.eval(sol) for sol in solutions]
+
+    X_transformed = transform(masks, solutions)
+    pred_fitness = final_surrogate.predict(X_transformed)
+
+    return np.column_stack([pred_fitness, real_fitness])

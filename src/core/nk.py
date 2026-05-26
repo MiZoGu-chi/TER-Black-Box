@@ -1,8 +1,12 @@
-
-
 from collections import defaultdict
-
 from itertools import combinations
+from pathlib import Path
+
+from src.core.algorithm import get_black_box_fitness_fn
+
+import numpy as np
+import json
+
 
 class NK_Landscape:
 
@@ -33,8 +37,13 @@ class NK_Landscape:
 
         f.close()
 
+        # un seul fichier cache par dossier N K
+        self._cache_path = Path(file).parent / "expected_local_optima.json"
 
-    def eval(self,solution):
+        # on extrait le numéro de l'isinstance
+        self._cache_instance_key = Path(file).stem.split('_')[-1]
+
+    def eval(self, solution):
 
         fitness = 0
 
@@ -48,7 +57,7 @@ class NK_Landscape:
 
             fitness += link[-1][int(locus_index)]
 
-        return fitness/self.N
+        return fitness / self.N
 
     def get_real_interaction(self):
 
@@ -58,12 +67,50 @@ class NK_Landscape:
 
             # On enlève le dernier élément (la table de fitness)
             # on sort pour ne pas avoir des paires (x, y) et (y, x)
-            neighborhood = sorted(link[:-1]) 
+            neighborhood = sorted(link[:-1])
 
             for order in range(1, self.K + 2):
 
-                for combo in combinations(neighborhood, order):
-                    interaction_group = tuple(combo)
+                # combinations retourne déjà des tuples, pas besoin de tuple()
+                for interaction_group in combinations(neighborhood, order):
                     interactions[order].add(interaction_group)
 
-        return {order: sorted(list(groups)) for order, groups in interactions.items()}
+        return {order: sorted(groups) for order, groups in interactions.items()}
+
+    def expected_local_optima(self, search_fn, cache_key, n_runs=100, seed=0):
+
+        config_key = f"{cache_key}_S{seed}_R{n_runs}"
+
+        cache = self._load_cache()
+
+        if self._cache_instance_key in cache and config_key in cache[self._cache_instance_key]:
+            self._expected_local_optima = cache[self._cache_instance_key][config_key]
+            return self._expected_local_optima
+
+        local_seed = np.random.default_rng(seed)
+        fit_fn = get_black_box_fitness_fn(self)
+        fitness = []
+
+        for _ in range(n_runs):
+            start_sol = local_seed.integers(2, size=self.N)
+            local_optimum = search_fn(start_sol, fit_fn)
+            fitness.append(self.eval(local_optimum))
+
+        result = float(np.mean(fitness))
+
+        # à enlever potentielement
+        cache.setdefault(self._cache_instance_key, {})[config_key] = result
+        self._save_cache(cache)
+
+        self._expected_local_optima = result
+        return result
+
+    def _load_cache(self):
+        if self._cache_path.exists():
+            with open(self._cache_path) as f:
+                return json.load(f)
+        return {}
+
+    def _save_cache(self, cache):
+        with open(self._cache_path, 'w') as f:
+            json.dump(cache, f, indent=2)

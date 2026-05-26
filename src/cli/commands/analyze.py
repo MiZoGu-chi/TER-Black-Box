@@ -11,38 +11,47 @@ from src.core.nk import NK_Landscape
 
 from src.utils.io_utils import OptimizationResult
 from src.utils.plot import plot_optimization, plot_aggregated_fidelity, plot_aggregated_fitness_distributions, plot_aggregated_convergence, save_df_as_image
-from src.utils.evaluation import get_surrogate_interaction, compare_interaction, compute_confusion_metrics
+from src.core.evaluation import get_surrogate_interaction, compare_interaction, compute_confusion_metrics
+from src.core.algorithm import local_search, best_improvement, tabu_search, BASELINE_ALGORITHMS
 
 class AnalyzeCommand(Command):
-    # crash sur des folders avec des run sur des N / D différents 
+    
     def execute(self):
 
         files = self._get_files()
 
-        agreged_matrix = None
+        agreged_matrix = {}
 
         maes = []
+
+        N = 0
 
         max_fitness_by_K = defaultdict(list)
         fitness_trajectories_by_K = defaultdict(list)
         fidelity_samples_by_K = defaultdict(list)
+        final_scatter_by_K = defaultdict(list)
+        expected_local_optima_by_K = defaultdict(list)
 
         for file in files:
             try:
-                meta, confusion_matrix, fidelity, fitness, sparsity = analyse_optimization_file(file)
+                meta, confusion_matrix, fidelity, fitness, final_scatter, sparsity = analyse_optimization_file(file)
 
-                N, K = meta['N'], meta['K']
+                N, K, D = meta['N'], meta['K'], meta['D']
 
-                if agreged_matrix is None: 
-                    agreged_matrix = np.zeros_like(confusion_matrix)
-                agreged_matrix += confusion_matrix
+                expected_local_optima_by_K[K].append(meta['expected_local_optima'])
 
-                print_run_summary(file.name, confusion_matrix, sparsity, N)       
+                if K not in agreged_matrix:
+                    agreged_matrix[K] = np.zeros_like(confusion_matrix)
+                agreged_matrix[K] += confusion_matrix
+
+                print_run_summary(file.name, confusion_matrix, sparsity, N, K)       
 
                 if fidelity:
                     fidelity_samples_by_K[K].extend(fidelity)
-
                     maes.append(self._get_mae(fidelity))
+
+                if len(final_scatter) > 0:
+                    final_scatter_by_K[K].append(final_scatter)
 
                 if fitness:
                     fitness_trajectories_by_K[K].append(fitness)
@@ -53,19 +62,7 @@ class AnalyzeCommand(Command):
             except Exception as e:
                 print(f"Erreur lors de l'analyse de {file.name} : {e}")
 
-        df_metrics = create_metrics_dataframe(agreged_matrix, N)
-        #print(create_metrics_dataframe(agreged_matrix))
-
-        print(f'mae surrogate : {np.mean(maes)}')
-
-        for K, scores in sorted(max_fitness_by_K.items()):
-            print(f'Score agrégé sur {len(scores)} runs pour K={K}: {np.mean(scores):.4f}')
-            print(f'Ecart-type sur {len(scores)} runs pour K={K}: {np.std(scores):.4f}')
-        
-        plot_aggregated_fitness_distributions(max_fitness_by_K)
-        plot_aggregated_convergence(fitness_trajectories_by_K)
-        plot_aggregated_fidelity(fidelity_samples_by_K)
-        save_df_as_image(df_metrics)
+        self._report_results(agreged_matrix, N, maes, max_fitness_by_K, fitness_trajectories_by_K, final_scatter_by_K, expected_local_optima_by_K) # remettre fidelty_sample_by_k
 
     def _get_files(self):
         path = Path(self.args.path)
@@ -80,18 +77,27 @@ class AnalyzeCommand(Command):
         reals = [p[1] for p in fidelity_history]
         return mean_absolute_error(reals, preds)
 
-    def _report_results(self, matrix, maes, max_fit, trajectories, fidelity_samples):
+    def _report_results(self, aggregated_matrix, N, maes, max_fitness_by_K, fitness_trajectories_by_K, fidelity_samples_by_K, expected_local_optima_by_K):
 
-        df_metrics = create_metrics_dataframe(matrix)
-        print(f'\nmae surrogate : {np.mean(maes)}')
-        
-        for K, scores in sorted(max_fit.items()):
-            print(f'Score agrégé sur {len(scores)} runs pour K={K}: {np.mean(scores):.4f}')
+        # concaténation des matrices de confusions
+        df_metrics = pd.concat([
+            create_metrics_dataframe(m, N, k)
+            for k, m in sorted(aggregated_matrix.items())
+        ], ignore_index=True)
+
+        for K, scores in sorted(max_fitness_by_K.items()):
+            mean_score = np.mean(scores)
+            mean_exp = np.mean(expected_local_optima_by_K[K])
+ 
+            print(f'Score agrégé sur {len(scores)} runs pour K={K}: {mean_score:.4f}')
             print(f'Ecart-type sur {len(scores)} runs pour K={K}: {np.std(scores):.4f}')
+            print(f'Espérance sur {len(scores)} runs pour K={K}: {mean_exp:.4f}')
+            print(f'Amélioration sur {len(scores)} runs pour K={K}: {mean_score - mean_exp:+.4f}\n')
+
         
-        plot_aggregated_fitness_distributions(max_fit)
-        plot_aggregated_convergence(trajectories)
-        plot_aggregated_fidelity(fidelity_samples)
+        plot_aggregated_fitness_distributions(max_fitness_by_K, expected_local_optima_by_K)
+        plot_aggregated_convergence(fitness_trajectories_by_K, expected_local_optima_by_K)
+        plot_aggregated_fidelity(fidelity_samples_by_K)
         save_df_as_image(df_metrics)
 
 ##########
@@ -105,7 +111,10 @@ def analyse_optimization_file(file):
     N = opti_res.meta['N']
     K = opti_res.meta['K']
     D = opti_res.meta['D']
-    num = opti_res.meta['num']
+    #num = opti_res.meta['num']
+    # temporaire à cause d'une erreur lors de la génération de mes fichiers de resultats
+    # à enlever une fois les résultats regénérer
+    num = int(Path(file).stem.split('_')[3]) 
     seed = opti_res.meta['seed']
 
     masks = generate_masks(N, D)
@@ -118,28 +127,39 @@ def analyse_optimization_file(file):
     instance_name = f"instances/{N}/{K}/nk_{N}_{K}_{num}.txt"
     landscape = NK_Landscape(instance_name)
 
+    # rétrocompatibilité avec les anciennes runs ; temporaire
+    if opti_res.meta.get('expected_local_optima') is None:  
+        # On passe la fonction officielle ! Son __name__ est "tabu_search"
+        opti_res.meta['expected_local_optima'] = landscape.expected_local_optima(
+            BASELINE_ALGORITHMS['bi'],
+            opti.meta['algo'],
+            n_runs=100, 
+            seed=42
+        )
+        
     # Format : { ordre1 : [(tuple1), ..., (tupleN)], ordreN: ... }
     # Uniquement les intéractions 
     real_graph = landscape.get_real_interaction()
 
     confusion_matrix_by_K = compare_interaction(surrogate_graph, real_graph, D)
 
-    return opti_res.meta, confusion_matrix_by_K, opti_res.fidelity_history, opti_res.fitness_history, opti_res.sparsity
+    return opti_res.meta, confusion_matrix_by_K, opti_res.fidelity_history, opti_res.fitness_history, opti_res.final_scatter, opti_res.sparsity
 
-def print_run_summary(filename, confusion_matrix, sparsity, N):       
+def print_run_summary(filename, confusion_matrix, sparsity, N, K):       
 
     s, z, t = sparsity
 
     print(f"\nMétriques - {filename} : {s:.1f}% zeros ({z}/{t})")
 
-    print(create_metrics_dataframe(confusion_matrix, N))
+    print(create_metrics_dataframe(confusion_matrix, N, K))
 
-def create_metrics_dataframe(confusion_matrix_by_order, N):
+def create_metrics_dataframe(confusion_matrix_by_order, N, K):
     tp, fp, fn, precision, recall, f1 = compute_confusion_metrics(confusion_matrix_by_order)
     
     df = pd.DataFrame({
         'N': [N] * len(tp),
-        'K': range(1, len(tp) + 1),
+        'K': [K] * len(tp),
+        'D': range(1, len(tp) + 1),
         'TP': tp,
         'FP': fp,
         'FN': fn,
