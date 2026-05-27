@@ -15,7 +15,6 @@ from src.core.models import MODELS
 from src.core.algorithm import ALGORITHMS, BASELINE_ALGORITHMS, START_STRATEGIES, local_search, best_improvement
 
 from src.utils.io_utils import OptimizationResult
-from src.utils.plot import plot_optimization
 
 class OptimizeCommand(Command):
 
@@ -41,12 +40,6 @@ class OptimizeCommand(Command):
             return
 
         landscape = NK_Landscape(instance_name)
-
-        baseline_fn = BASELINE_ALGORITHMS[args.algo]
-        
-        expected_local_optima = landscape.expected_local_optima(
-            baseline_fn, cache_key=args.algo, n_runs=100, seed=42
-        )
 
         masks = generate_masks(N, args.D)
         model = MODELS[args.surrogate]['model']
@@ -83,12 +76,15 @@ class OptimizeCommand(Command):
 
         search_fn = BASELINE_ALGORITHMS[self.algo]
  
+        baselines = {}
+ 
         for N in self.configs_N:
             for K in self.configs_K:
                 for num in self.config_n_instances:
                     instance_name = f"instances/{N}/{K}/nk_{N}_{K}_{num}.txt"
                     if os.path.exists(instance_name):
-                        NK_Landscape(instance_name).expected_local_optima(search_fn, self.algo, n_runs=100, seed=42)
+                        landscape = NK_Landscape(instance_name)
+                        baselines[(N, K, num)] = landscape.expected_local_optima(search_fn)
                         
         Parallel(n_jobs=self.n_jobs)(delayed(self._task_wrapper)(N, K, num, seed, self.args, output_dir) 
             for N in self.configs_N 
@@ -106,6 +102,5 @@ class OptimizeCommand(Command):
                 s, z, t = res.sparsity
                 print(f"[{f.name}] : {s:.1f}% zeros ({z}/{t})")
 
-                #plot_optimization(f)
             except Exception:
                 print(f"[{f.name}] : Erreur de Parsing")

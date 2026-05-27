@@ -10,9 +10,8 @@ from src.core.walsh import generate_masks
 from src.core.nk import NK_Landscape
 
 from src.utils.io_utils import OptimizationResult
-from src.utils.plot import plot_optimization, plot_aggregated_fidelity, plot_aggregated_fitness_distributions, plot_aggregated_convergence, save_df_as_image
+from src.utils.plot import plot_aggregated_fidelity, plot_aggregated_fitness_distributions, plot_aggregated_convergence, save_df_as_image, plot_aggregated_fidelity_with_time
 from src.core.evaluation import get_surrogate_interaction, compare_interaction, compute_confusion_metrics
-from src.core.algorithm import local_search, best_improvement, tabu_search, BASELINE_ALGORITHMS
 
 class AnalyzeCommand(Command):
     
@@ -46,14 +45,14 @@ class AnalyzeCommand(Command):
 
                 print_run_summary(file.name, confusion_matrix, sparsity, N, K)       
 
-                if fidelity:
+                if len(fidelity) > 0:
                     fidelity_samples_by_K[K].extend(fidelity)
                     maes.append(self._get_mae(fidelity))
 
                 if len(final_scatter) > 0:
                     final_scatter_by_K[K].append(final_scatter)
 
-                if fitness:
+                if len(fitness) > 0:
                     fitness_trajectories_by_K[K].append(fitness)
 
                     last_score = fitness[-1][0]
@@ -62,7 +61,7 @@ class AnalyzeCommand(Command):
             except Exception as e:
                 print(f"Erreur lors de l'analyse de {file.name} : {e}")
 
-        self._report_results(agreged_matrix, N, maes, max_fitness_by_K, fitness_trajectories_by_K, final_scatter_by_K, expected_local_optima_by_K) # remettre fidelty_sample_by_k
+        self._report_results(agreged_matrix, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, expected_local_optima_by_K) 
 
     def _get_files(self):
         path = Path(self.args.path)
@@ -77,12 +76,12 @@ class AnalyzeCommand(Command):
         reals = [p[1] for p in fidelity_history]
         return mean_absolute_error(reals, preds)
 
-    def _report_results(self, aggregated_matrix, N, maes, max_fitness_by_K, fitness_trajectories_by_K, fidelity_samples_by_K, expected_local_optima_by_K):
+    def _report_results(self, agreged_matrix, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, expected_local_optima_by_K):
 
         # concaténation des matrices de confusions
         df_metrics = pd.concat([
             create_metrics_dataframe(m, N, k)
-            for k, m in sorted(aggregated_matrix.items())
+            for k, m in sorted(agreged_matrix.items())
         ], ignore_index=True)
 
         for K, scores in sorted(max_fitness_by_K.items()):
@@ -94,10 +93,10 @@ class AnalyzeCommand(Command):
             print(f'Espérance sur {len(scores)} runs pour K={K}: {mean_exp:.4f}')
             print(f'Amélioration sur {len(scores)} runs pour K={K}: {mean_score - mean_exp:+.4f}\n')
 
-        
         plot_aggregated_fitness_distributions(max_fitness_by_K, expected_local_optima_by_K)
         plot_aggregated_convergence(fitness_trajectories_by_K, expected_local_optima_by_K)
-        plot_aggregated_fidelity(fidelity_samples_by_K)
+        plot_aggregated_fidelity_with_time(fidelity_samples_by_K)
+        plot_aggregated_fidelity(final_scatter_by_K)
         save_df_as_image(df_metrics)
 
 ##########
@@ -111,10 +110,7 @@ def analyse_optimization_file(file):
     N = opti_res.meta['N']
     K = opti_res.meta['K']
     D = opti_res.meta['D']
-    #num = opti_res.meta['num']
-    # temporaire à cause d'une erreur lors de la génération de mes fichiers de resultats
-    # à enlever une fois les résultats regénérer
-    num = int(Path(file).stem.split('_')[3]) 
+    num = opti_res.meta['num'] 
     seed = opti_res.meta['seed']
 
     masks = generate_masks(N, D)
@@ -126,16 +122,6 @@ def analyse_optimization_file(file):
     # On est obligé de recréer l'instance NK
     instance_name = f"instances/{N}/{K}/nk_{N}_{K}_{num}.txt"
     landscape = NK_Landscape(instance_name)
-
-    # rétrocompatibilité avec les anciennes runs ; temporaire
-    if opti_res.meta.get('expected_local_optima') is None:  
-        # On passe la fonction officielle ! Son __name__ est "tabu_search"
-        opti_res.meta['expected_local_optima'] = landscape.expected_local_optima(
-            BASELINE_ALGORITHMS['bi'],
-            opti.meta['algo'],
-            n_runs=100, 
-            seed=42
-        )
         
     # Format : { ordre1 : [(tuple1), ..., (tupleN)], ordreN: ... }
     # Uniquement les intéractions 
@@ -145,6 +131,7 @@ def analyse_optimization_file(file):
 
     return opti_res.meta, confusion_matrix_by_K, opti_res.fidelity_history, opti_res.fitness_history, opti_res.final_scatter, opti_res.sparsity
 
+
 def print_run_summary(filename, confusion_matrix, sparsity, N, K):       
 
     s, z, t = sparsity
@@ -152,6 +139,7 @@ def print_run_summary(filename, confusion_matrix, sparsity, N, K):
     print(f"\nMétriques - {filename} : {s:.1f}% zeros ({z}/{t})")
 
     print(create_metrics_dataframe(confusion_matrix, N, K))
+
 
 def create_metrics_dataframe(confusion_matrix_by_order, N, K):
     tp, fp, fn, precision, recall, f1 = compute_confusion_metrics(confusion_matrix_by_order)

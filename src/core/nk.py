@@ -37,12 +37,6 @@ class NK_Landscape:
 
         f.close()
 
-        # un seul fichier cache par dossier N K
-        self._cache_path = Path(file).parent / "expected_local_optima.json"
-
-        # on extrait le numéro de l'isinstance
-        self._cache_instance_key = Path(file).stem.split('_')[-1]
-
     def eval(self, solution):
 
         fitness = 0
@@ -77,16 +71,9 @@ class NK_Landscape:
 
         return {order: sorted(groups) for order, groups in interactions.items()}
 
-    def expected_local_optima(self, search_fn, cache_key, n_runs=100, seed=0):
 
-        config_key = f"{cache_key}_S{seed}_R{n_runs}"
-
-        cache = self._load_cache()
-
-        if self._cache_instance_key in cache and config_key in cache[self._cache_instance_key]:
-            self._expected_local_optima = cache[self._cache_instance_key][config_key]
-            return self._expected_local_optima
-
+    def expected_local_optima(self, search_fn, n_runs=100, seed=42):
+        
         local_seed = np.random.default_rng(seed)
         fit_fn = get_black_box_fitness_fn(self)
         fitness = []
@@ -96,21 +83,6 @@ class NK_Landscape:
             local_optimum = search_fn(start_sol, fit_fn)
             fitness.append(self.eval(local_optimum))
 
-        result = float(np.mean(fitness))
+        return float(np.mean(fitness))
+        
 
-        # à enlever potentielement
-        cache.setdefault(self._cache_instance_key, {})[config_key] = result
-        self._save_cache(cache)
-
-        self._expected_local_optima = result
-        return result
-
-    def _load_cache(self):
-        if self._cache_path.exists():
-            with open(self._cache_path) as f:
-                return json.load(f)
-        return {}
-
-    def _save_cache(self, cache):
-        with open(self._cache_path, 'w') as f:
-            json.dump(cache, f, indent=2)

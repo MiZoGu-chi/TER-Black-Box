@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 import os
 
@@ -78,42 +79,6 @@ def plot_convergence_comparison(results, baseline_score=None):
     plt.legend()
     plt.show()
 
-# à relire
-def plot_optimization(filepath):
-    result = OptimizationResult(filepath)
-    
-    m = result.meta
-    instance_name = f"opti_N{m['N']}_K{m['K']}_D{m['D']}_N{m['num']}_S{m['seed']}_{m['algo']}_{m['surrogate']}"
-    
-    best_fit = [item[0] for item in result.fitness_history]
-    evals = [item[1] for item in result.fitness_history] 
-    
-    pred_fit = [item[0] for item in result.fidelity_history]
-    real_fit = [item[1] for item in result.fidelity_history]   
-    
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-    
-    axes[0].plot(evals, best_fit, marker='.', linestyle='-', color='b')
-    axes[0].set_title("Convergence de l'optimisation")
-    axes[0].set_xlabel("Évaluations") 
-    axes[0].set_ylabel("Meilleure Fitness")
-    axes[0].grid(True, linestyle='--', alpha=0.7)
-    
-    axes[1].scatter(real_fit, pred_fit, s=10, color='black', alpha=0.5)
-    if real_fit and pred_fit:
-        min_val = min(min(real_fit), min(pred_fit))
-        max_val = max(max(real_fit), max(pred_fit))
-        axes[1].plot([min_val, max_val], [min_val, max_val], 'r--')
-        
-    axes[1].set_title("Précision du modéle surrogate")
-    axes[1].set_xlabel("fitness")
-    axes[1].set_ylabel("fitness prédite")
-    axes[1].grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    save_plot(instance_name, "analyse_visuelle")
-    plt.close()
-
 def plot_aggregated_fitness_distributions(max_fitness_by_K, expected_fitness_by_K=None):
     plt.figure(figsize=(8, 6))
     
@@ -160,10 +125,8 @@ def plot_aggregated_convergence(fitness_trajectories_by_K, expected_local_optima
 
         resampled = np.array(resampled)
         mean = np.mean(resampled, axis=0)
-        std = np.std(resampled, axis=0)
 
         plt.plot(eval_grid, mean, color=color, linewidth=2, label=f"K={K}")
-        plt.fill_between(eval_grid, mean - std, mean + std, color=color, alpha=0.2)
 
         if expected_local_optima_by_K is not None and K in expected_local_optima_by_K:
             mean_exp = np.mean(expected_local_optima_by_K[K])
@@ -177,36 +140,37 @@ def plot_aggregated_convergence(fitness_trajectories_by_K, expected_local_optima
     save_plot("optimization_convergence", "trajectories")
     plt.close()
 
-# def plot_aggregated_fidelity(fidelity_samples_by_K):
-#     plt.figure(figsize=(8, 8))
-    
-#     colors = {1: 'blue', 2: 'orange', 4: 'green', 8: 'red'}
-    
-#     reals_fitness = []
-#     preds_fitness = []
+def plot_aggregated_fidelity_with_time(fidelity_samples_by_K):
+    sorted_K = sorted(fidelity_samples_by_K.keys())
+    fig, axes = plt.subplots(1, len(sorted_K), figsize=(7 * len(sorted_K), 6))
 
-#     for K, samples in fidelity_samples_by_K.items():
-#         preds = [s[0] for s in samples]
-#         reals = [s[1] for s in samples]
-        
-#         reals_fitness.extend(reals)
-#         preds_fitness.extend(preds)
-        
-#         plt.scatter(reals, preds, s=5, color=colors.get(K), alpha=0.3, label=f"K={K}")
+    # Si un seul K, axes n'est pas une liste
+    if len(sorted_K) == 1:
+        axes = [axes]
 
-#     if reals_fitness and preds_fitness:
-#         min_val = min(min(reals_fitness), min(preds_fitness))
-#         max_val = max(max(reals_fitness), max(preds_fitness))
-#         plt.plot([min_val, max_val], [min_val, max_val], 'b--')
+    for ax, K in zip(axes, sorted_K):
+        samples = fidelity_samples_by_K[K]
+        preds  = [s[0] for s in samples]
+        reals  = [s[1] for s in samples]
+        n_evals = [s[2] for s in samples]
 
-#     plt.title("Précision globale du modèle surrogate par K", fontsize=14)
-#     plt.xlabel("Fitness réelle", fontsize=12)
-#     plt.ylabel("Fitness prédite", fontsize=12)
-#     plt.legend()
-#     plt.grid(True, alpha=0.3)
-    
-#     save_plot("model_fidelity")
-#     plt.close()
+        sc = ax.scatter(reals, preds, c=n_evals, cmap='viridis', s=8, alpha=0.6)
+
+        # Ligne diagonale de référence
+        min_val = min(min(reals), min(preds))
+        max_val = max(max(reals), max(preds))
+        ax.plot([min_val, max_val], [min_val, max_val], 'k--', alpha=0.5)
+
+        fig.colorbar(sc, ax=ax, label="Nombre d'évaluations")
+        ax.set_title(f"K={K}", fontsize=13)
+        ax.set_xlabel("Fitness réelle", fontsize=11)
+        ax.set_ylabel("Fitness prédite", fontsize=11)
+        ax.grid(True, alpha=0.3)
+
+    fig.suptitle("Évolution de la précision du surrogate pendant l'optimisation", fontsize=14)
+    plt.tight_layout()
+    save_plot("model_training_fidelity")
+    plt.close()
 
 def plot_aggregated_fidelity(final_scatter_by_K):
     plt.figure(figsize=(8, 8))
