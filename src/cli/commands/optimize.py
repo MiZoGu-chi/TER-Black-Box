@@ -29,7 +29,7 @@ class OptimizeCommand(Command):
         # self.njobs = 10
 
     @staticmethod
-    def _task_wrapper(N, K, num, seed, args, output_dir):
+    def _task_wrapper(N, K, num, seed, args, output_dir, expected_local_optima):
 
         np.random.seed(seed)
         random.seed(seed)
@@ -86,7 +86,7 @@ class OptimizeCommand(Command):
                         landscape = NK_Landscape(instance_name)
                         baselines[(N, K, num)] = landscape.expected_local_optima(search_fn)
                         
-        Parallel(n_jobs=self.n_jobs)(delayed(self._task_wrapper)(N, K, num, seed, self.args, output_dir) 
+        Parallel(n_jobs=self.n_jobs)(delayed(self._task_wrapper)(N, K, num, seed, self.args, output_dir, baselines[(N, K, num)]) 
             for N in self.configs_N 
             for K in self.configs_K 
             for num in self.config_n_instances

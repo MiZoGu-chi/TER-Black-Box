@@ -9,8 +9,8 @@ from .base import Command
 from src.core.walsh import generate_masks
 from src.core.nk import NK_Landscape
 
-from src.utils.io_utils import OptimizationResult
-from src.utils.plot import plot_aggregated_fidelity, plot_aggregated_fitness_distributions, plot_aggregated_convergence, save_df_as_image, plot_aggregated_fidelity_with_time
+from src.utils.io_utils import OptimizationResult, save_df_as_image
+from src.utils.plot import plot_aggregated_fidelity, plot_aggregated_fitness_distributions, plot_aggregated_convergence, plot_aggregated_fidelity_with_time
 from src.core.evaluation import get_surrogate_interaction, compare_interaction, compute_confusion_metrics
 
 class AnalyzeCommand(Command):

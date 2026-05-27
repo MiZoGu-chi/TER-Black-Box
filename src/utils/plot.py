@@ -8,37 +8,6 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 from src.utils.io_utils import OptimizationResult
-
-
-def plot_compare_and_scatter_models(models, D, instance_name, f, f_hat, loss_function="mae"):
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-
-    for model_name, maes in models.items():
-        axes[0].plot(maes, linewidth=2.0, alpha=0.8, label=model_name)
-
-    axes[0].set_title(f"Comparaison des modèles (D={D})\nInstance : {instance_name}", fontsize=16)
-    axes[0].set_xlabel("Sample size", fontsize=12)
-    axes[0].set_ylabel("Mean Abs. Error of fitness", fontsize=12)
-    
-    axes[0].grid(True, color='lightgray', linestyle='-', linewidth=0.5)
-
-    axes[0].legend(title='method', loc='upper right', fontsize=12)
-
-    axes[0].set_yscale('log')
-
-    axes[0].set_ylim(-0.05, 1.0)
-
-    axes[1].scatter(f, f_hat, s=2, color='black', alpha=0.5)
-
-    axes[1].set_xlabel("f(x)")
-    axes[1].set_ylabel("Approximation of f(x)")
-    
-    axes[1].grid(True, alpha=0.3)
-
-    plt.tight_layout()
-    
-    save_plot(instance_name, D, loss_function)
-
  
 def plot_compare_models(models, D, instance_name, loss_function):
     plt.figure(figsize=(10, 6))
@@ -58,26 +27,6 @@ def plot_compare_models(models, D, instance_name, loss_function):
     save_plot(instance_name, f"D={D}", loss_function)
 
 
-def plot_convergence_comparison(results, baseline_score=None):
-    plt.figure(figsize=(10, 6))
-    
-    # Si on reçoit une simple liste (un seul résultat)
-    if isinstance(results, list):
-        plt.plot(results, label='Optimization Run', linewidth=2)
-    elif isinstance(results, dict):
-        for label, history in results.items():
-            plt.plot(history, label=label, linewidth=2)
-    
-    if baseline_score is not None:
-        plt.axhline(y=baseline_score, color='red', linestyle='--', 
-                    label=f'Baseline: {baseline_score:.4f}')
-    
-    plt.title('Assisted surrogate convergence')
-    plt.xlabel('Budget')
-    plt.ylabel('Best Fitness')
-    plt.grid(True, linestyle='--', alpha=0.7)
-    plt.legend()
-    plt.show()
 
 def plot_aggregated_fitness_distributions(max_fitness_by_K, expected_fitness_by_K=None):
     plt.figure(figsize=(8, 6))
@@ -104,7 +53,6 @@ def plot_aggregated_fitness_distributions(max_fitness_by_K, expected_fitness_by_
     save_plot("aggregated_fitness")
     plt.close()    
 
-# mediane et IQR plut que std et mean ?
 def plot_aggregated_convergence(fitness_trajectories_by_K, expected_local_optima_by_K=None):
     plt.figure(figsize=(10, 6))
     colors = {1: 'blue', 2: 'orange', 4: 'green', 8: 'red'}
@@ -202,20 +150,6 @@ def plot_aggregated_fidelity(final_scatter_by_K):
     save_plot("model_fidelity")
     plt.close()
     
-# à bouger ailleurs
-def save_df_as_image(df):
-    height = 0.5 * (len(df) + 1) 
-    fig, ax = plt.subplots(figsize=(10, height)) 
-    ax.axis('off')
-    
-    table = ax.table(cellText=df.values, colLabels=df.columns, rowLabels=df.index, loc='center', cellLoc='center')
-    table.auto_set_font_size(False)
-    table.set_fontsize(10)
-    table.auto_set_column_width(col=list(range(len(df.columns))))
-    
-    save_plot("interaction metrics")
-    plt.close()
-
 def save_plot(base_name, *tags):
     filename = base_name
 

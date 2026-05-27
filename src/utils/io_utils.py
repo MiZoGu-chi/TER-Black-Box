@@ -44,3 +44,17 @@ class OptimizationResult:
         pct = (zero_count / total) * 100
 
         return pct, zero_count, total
+
+
+def save_df_as_image(df):
+    height = 0.5 * (len(df) + 1) 
+    fig, ax = plt.subplots(figsize=(10, height)) 
+    ax.axis('off')
+    
+    table = ax.table(cellText=df.values, colLabels=df.columns, rowLabels=df.index, loc='center', cellLoc='center')
+    table.auto_set_font_size(False)
+    table.set_fontsize(10)
+    table.auto_set_column_width(col=list(range(len(df.columns))))
+    
+    save_plot("interaction metrics")
+    plt.close()
