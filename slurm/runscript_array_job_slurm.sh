@@ -3,7 +3,7 @@
 #SBATCH --job-name=run_test_surrogate  
 #SBATCH --error=logs/%x_%j.err  
 #SBATCH --output=logs/%x_%j.out
-#SBATCH --time=3-00:00:00
+#SBATCH --time=13-00:00:00
 
 # Environement to load
 if [ "$NEED_MODULE" == "1" ]; then
