@@ -1,16 +1,14 @@
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from collections import defaultdict
 from sklearn.metrics import mean_absolute_error
 
-from .base import Command  
+from .base import Command
 
-from src.core.walsh import generate_masks
-from src.core.nk import NK_Landscape
+from src.core.nk import load_landscape_and_masks
 
 from src.utils.io_utils import OptimizationResult, save_df_as_image
-from src.utils.plot import plot_aggregated_fidelity, plot_aggregated_fitness_distributions, plot_aggregated_convergence, plot_aggregated_fidelity_with_time
+from src.visualization import plot_aggregated_fidelity, plot_aggregated_fitness_distributions, plot_aggregated_convergence, plot_aggregated_fidelity_with_time
 from src.core.evaluation import get_surrogate_interaction, compare_interaction, compute_confusion_metrics
 
 class AnalyzeCommand(Command):
@@ -19,11 +17,13 @@ class AnalyzeCommand(Command):
 
         files = self._get_files()
 
-        agreged_matrix = {}
+        aggregated_matrix = {}
 
         maes = []
 
         N = 0
+        plot_N, plot_surrogate, plot_algo = None, None, None
+        all_K = set()
 
         max_fitness_by_K = defaultdict(list)
         fitness_trajectories_by_K = defaultdict(list)
@@ -36,12 +36,17 @@ class AnalyzeCommand(Command):
                 meta, confusion_matrix, fidelity, fitness, final_scatter, sparsity = analyse_optimization_file(file)
 
                 N, K, D = meta['N'], meta['K'], meta['D']
+                all_K.add(K)
 
-                expected_local_optima_by_K[K].append(meta['expected_local_optima'])
+                if plot_N is None:
+                    plot_N, plot_surrogate, plot_algo = N, meta['surrogate'], meta['algo']
 
-                if K not in agreged_matrix:
-                    agreged_matrix[K] = np.zeros_like(confusion_matrix)
-                agreged_matrix[K] += confusion_matrix
+                if meta.get('expected_local_optima') is not None:
+                    expected_local_optima_by_K[K].append(meta['expected_local_optima'])
+
+                if K not in aggregated_matrix:
+                    aggregated_matrix[K] = np.zeros_like(confusion_matrix)
+                aggregated_matrix[K] += confusion_matrix
 
                 print_run_summary(file.name, confusion_matrix, sparsity, N, K)       
 
@@ -61,43 +66,46 @@ class AnalyzeCommand(Command):
             except Exception as e:
                 print(f"Erreur lors de l'analyse de {file.name} : {e}")
 
-        self._report_results(agreged_matrix, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, expected_local_optima_by_K) 
+        K_str = "_".join(str(k) for k in sorted(all_K))
+        plot_subdir = f"{plot_N}/{K_str}/{plot_surrogate}/{plot_algo}" if plot_N else None
+        self._report_results(aggregated_matrix, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, expected_local_optima_by_K, plot_subdir)
 
-    def _get_files(self):
-        path = Path(self.args.path)
-        if path.is_dir():
-            return sorted(path.glob("opti_*.txt"))
-        if path.is_file():
-            return [path]
-        return []
 
     def _get_mae(self, fidelity_history):
         preds = [p[0] for p in fidelity_history]
         reals = [p[1] for p in fidelity_history]
         return mean_absolute_error(reals, preds)
 
-    def _report_results(self, agreged_matrix, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, expected_local_optima_by_K):
+    def _report_results(self, aggregated_matrix, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, expected_local_optima_by_K, subdir=None):
 
         # concaténation des matrices de confusions
         df_metrics = pd.concat([
             create_metrics_dataframe(m, N, k)
-            for k, m in sorted(agreged_matrix.items())
+            for k, m in sorted(aggregated_matrix.items())
         ], ignore_index=True)
 
         for K, scores in sorted(max_fitness_by_K.items()):
             mean_score = np.mean(scores)
-            mean_exp = np.mean(expected_local_optima_by_K[K])
- 
+            
             print(f'Score agrégé sur {len(scores)} runs pour K={K}: {mean_score:.4f}')
             print(f'Ecart-type sur {len(scores)} runs pour K={K}: {np.std(scores):.4f}')
-            print(f'Espérance sur {len(scores)} runs pour K={K}: {mean_exp:.4f}')
-            print(f'Amélioration sur {len(scores)} runs pour K={K}: {mean_score - mean_exp:+.4f}\n')
+            
+            # On vérifie si on a des données d'espérance valides pour ce K
+            if K in expected_local_optima_by_K and len(expected_local_optima_by_K[K]) > 0:
+                mean_exp = np.mean(expected_local_optima_by_K[K])
+                print(f'Espérance sur {len(scores)} runs pour K={K}: {mean_exp:.4f}')
+                print(f'Amélioration sur {len(scores)} runs pour K={K}: {mean_score - mean_exp:+.4f}\n')
+            else:
+                print(f'Espérance sur {len(scores)} runs pour K={K}: Non disponible (ancienne run)\n')
 
-        plot_aggregated_fitness_distributions(max_fitness_by_K, expected_local_optima_by_K)
-        plot_aggregated_convergence(fitness_trajectories_by_K, expected_local_optima_by_K)
-        plot_aggregated_fidelity_with_time(fidelity_samples_by_K)
-        plot_aggregated_fidelity(final_scatter_by_K)
-        save_df_as_image(df_metrics)
+        # Si le dictionnaire est totalement vide (anciennes runs uniquement), on passe None aux graphiques
+        if not any(expected_local_optima_by_K.values()):
+            expected_local_optima_by_K = None
+
+        plot_aggregated_fitness_distributions(max_fitness_by_K, expected_local_optima_by_K, subdir=subdir)
+        plot_aggregated_convergence(fitness_trajectories_by_K, expected_local_optima_by_K, subdir=subdir)
+        plot_aggregated_fidelity_with_time(fidelity_samples_by_K, subdir=subdir)
+        save_df_as_image(df_metrics, subdir=subdir)
 
 ##########
 
@@ -113,15 +121,11 @@ def analyse_optimization_file(file):
     num = opti_res.meta['num'] 
     seed = opti_res.meta['seed']
 
-    masks = generate_masks(N, D)
+    landscape, masks = load_landscape_and_masks(N, K, D, num)
 
     # Format : { ordre1 : [((tuple1), coef1), ..., ((tupleN), coefN)], ordreN: ... }
     # Interactions + poids
     surrogate_graph = get_surrogate_interaction(opti_res.coefs, masks)
-
-    # On est obligé de recréer l'instance NK
-    instance_name = f"instances/{N}/{K}/nk_{N}_{K}_{num}.txt"
-    landscape = NK_Landscape(instance_name)
         
     # Format : { ordre1 : [(tuple1), ..., (tupleN)], ordreN: ... }
     # Uniquement les intéractions 

@@ -21,3 +21,5 @@ class CompareCommand(Command):
         masks = generate_masks(self.args.N, self.args.D)
 
         run_model_comparison(self.args, landscape, masks, MODELS)
+
+        

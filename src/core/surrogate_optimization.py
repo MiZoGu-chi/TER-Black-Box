@@ -1,7 +1,5 @@
 import numpy as np
 
-np.set_printoptions(threshold=256)
-
 from src.core.data_sampler import generate_random_solutions, evaluate_and_transform, transform
 
 def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, surrogate_model, search_fun, start_fun):
@@ -54,16 +52,5 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
 
     fitness_history.append((best_fit, budget))
 
-    final_scatter_data = evaluate_final_surrogate(N, landscape, masks, surrogate_model)
+    return best_fit, best_sol, fitness_history, surrogate_model, surrogate_fidelity_history
 
-    return best_fit, best_sol, fitness_history, surrogate_model, surrogate_fidelity_history, final_scatter_data
-
-def evaluate_final_surrogate(N, landscape, masks, final_surrogate, n_samples=1000):
-    solutions = np.random.randint(2, size=(n_samples, N))
-
-    real_fitness = [landscape.eval(sol) for sol in solutions]
-
-    X_transformed = transform(masks, solutions)
-    pred_fitness = final_surrogate.predict(X_transformed)
-
-    return np.column_stack([pred_fitness, real_fitness])

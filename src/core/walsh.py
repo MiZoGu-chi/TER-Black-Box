@@ -11,15 +11,6 @@ def walsh(x, k):
 
     return (-1) ** sum_bits
 
-def apply_walsh(x, masks):
-    res = []
-
-    for k in masks:
-        temp = walsh(x, k)
-        res.append(temp)
-
-    return np.array(res)
-
 def apply_walsh_vectorized(solutions, masks):
     masks = np.asarray(masks)
     solutions = np.asarray(solutions)

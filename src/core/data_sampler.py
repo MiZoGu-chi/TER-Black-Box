@@ -1,10 +1,9 @@
 import numpy as np
 
-from src.core.walsh import apply_walsh_vectorized, generate_masks
+from src.core.walsh import apply_walsh_vectorized
 
-# NB : nb de solutions ; N : taille d'une solution
 def generate_random_solutions(N, NB):
-    return np.random.randint(2, size=(NB, N)) # N = 5, [0|1, 0|1, 0|1, 0|1, 0|1]
+    return np.random.randint(2, size=(NB, N)) 
 
 def evaluate_and_transform(masks, objective_fun, solutions):
     X_train = []
@@ -18,16 +17,6 @@ def evaluate_and_transform(masks, objective_fun, solutions):
         Y_train.append(score)
     
     return np.array(X_train), np.array(Y_train)
-
-# def transform(masks, solutions):
-#     X_train = []
-
-#     for s in solutions:
-#         features_walsh = apply_walsh_vectorized(s, masks)
-
-#         X_train.append(features_walsh)
-    
-#     return np.array(X_train)
 
 def transform(masks, solutions):
     sol_array = np.array(solutions) 

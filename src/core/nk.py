@@ -1,16 +1,15 @@
 from collections import defaultdict
 from itertools import combinations
-from pathlib import Path
+import os
 
 from src.core.algorithm import get_black_box_fitness_fn
-
 import numpy as np
-import json
 
+from src.core.walsh import generate_masks
 
 class NK_Landscape:
 
-    def __init__(self, file, max_nb_turn=-1):
+    def __init__(self, file):
 
         f = open(file, "r")
         lignes = f.readlines()
@@ -85,4 +84,15 @@ class NK_Landscape:
 
         return float(np.mean(fitness))
         
+#############################################################
 
+def load_landscape_and_masks(N, K, D, num):
+    instance_name = f"instances/{N}/{K}/nk_{N}_{K}_{num}.txt"
+    
+    if not os.path.exists(instance_name):
+        raise FileNotFoundError(f"L'instance {instance_name} est introuvable.")
+        
+    landscape = NK_Landscape(instance_name)
+    masks = generate_masks(N, D)
+    
+    return landscape, masks

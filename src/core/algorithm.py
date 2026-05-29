@@ -133,7 +133,7 @@ def get_best_start(best_sol, N):
     return best_sol.copy()
 
 def get_e_greedy_start(best_sol, N, **kwargs):
-    epsilon = kwargs.get('epsilon', 0.5)
+    epsilon = kwargs.get('epsilon', 0.3)
 
     if np.random.random() < epsilon:
         return np.random.randint(2, size=N)

@@ -6,7 +6,7 @@ import numpy as np
 from sklearnex import patch_sklearn
 from sklearn.exceptions import ConvergenceWarning
 
-from src.cli.commands import OptimizeCommand, CompareCommand, AnalyzeCommand
+from src.cli.commands import OptimizeCommand, CompareCommand, AnalyzeCommand, EvaluateCommand
 from src.core.models import MODELS
 from src.core.algorithm import ALGORITHMS, START_STRATEGIES
 
@@ -40,10 +40,14 @@ if __name__ == "__main__":
     parser_optimize.add_argument("--initial_pop_size", type=int, default=20)
     parser_optimize.add_argument("--surrogate", type=str, default='lasso_lars', choices=MODELS.keys())
     parser_optimize.add_argument("--algo", type=str, default='tabu', choices=ALGORITHMS.keys())
-    parser_optimize.add_argument("--start", type=str, default='rd', choices=START_STRATEGIES.keys())
+    parser_optimize.add_argument("--start", type=str, default='egreedy', choices=START_STRATEGIES.keys())
 
     parser_analyze = subparsers.add_parser('analyze')
-    parser_analyze.add_argument("path", type=str)
+    parser_analyze.add_argument("path", type=str, nargs='+')
+
+    parser_evaluate = subparsers.add_parser('evaluate')
+    parser_evaluate.add_argument("path", type=str, help="Chemin vers le fichier opti_...txt dont on souhaite évaluer le surrogate")
+    parser_evaluate.add_argument("--samples", type=int, default=1000, help="Nombre d'échantillons à tester")
 
     args = parser.parse_args()
 
@@ -54,7 +58,8 @@ if __name__ == "__main__":
     commands = {
         'compare': CompareCommand,
         'optimize': OptimizeCommand,
-        'analyze': AnalyzeCommand
+        'analyze': AnalyzeCommand,
+        'evaluate' : EvaluateCommand
     }
 
     if args.mode in commands:

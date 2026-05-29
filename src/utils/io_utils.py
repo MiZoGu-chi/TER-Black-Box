@@ -1,40 +1,63 @@
 import ast
 import numpy as np
+from src.visualization import save_plot
 
 class OptimizationResult:
 
     def __init__(self, filepath):
 
         self.filepath = filepath
-        self.meta, self.coefs, self.fitness_history, self.fidelity_history, self.final_scatter = self._parse_file()
+        self.meta, self.coefs, self.fitness_history, self.fidelity_history, self.final_scatter, self.best_sol = self._parse_file()
 
     def _parse_file(self):
+            with open(self.filepath, 'r') as f:
+                raw = f.read()
 
-        with open(self.filepath, 'r') as f:
-            lines = f.read()
-        
-        meta_section, fitness_section, fidelity_section, scatter_section, coefs_section = lines.split("\n#\n")
+            sections = raw.split("\n#\n")
 
-        header = meta_section.strip().split()
+            best_sol_section = None
 
-        meta = {
-            'N': int(header[0]),
-            'K': int(header[1]),
-            'D': int(header[2]),
-            'num' : int(header[3]),
-            'seed': int(header[4]),
-            'algo': header[5],      
-            'surrogate': header[6],
-            'expected_local_optima': float(header[7]) if len(header) > 7 else None # pour gérer la rétrocompatibliter avec les anciennes runs
-        }
-        
-        fitness_history = [(float(line.split()[0]), int(line.split()[1])) for line in fitness_section.strip().split('\n')]
-        fidelity_history = [(float(line.split()[0]), float(line.split()[1]), int(line.split()[2])) for line in fidelity_section.strip().split('\n')]    
-        final_scatter = np.array([[float(line.split()[0]), float(line.split()[1])] for line in scatter_section.strip().split('\n')])
+            # ancien format (5 sections) : meta | fitness | fidelity | scatter | coefs
+            if len(sections) == 5 and not sections[3].strip().startswith('['):
+                meta_section, fitness_section, fidelity_section, _, coefs_section = sections
+            # nouveau format (5 sections) : meta | fitness | fidelity | coefs | best_sol
+            elif len(sections) == 5 and sections[3].strip().startswith('['):
+                meta_section, fitness_section, fidelity_section, coefs_section, best_sol_section = sections
+            elif len(sections) == 4:
+                meta_section, fitness_section, fidelity_section, coefs_section = sections
+            else:
+                raise ValueError(f"Format de fichier inconnu : {len(sections)} sections")
 
-        coefs = np.array(ast.literal_eval(coefs_section))
-        
-        return meta, coefs, fitness_history, fidelity_history, final_scatter
+            # 1. Méta
+            header = meta_section.strip().split()
+            meta = {
+                'N': int(header[0]),
+                'K': int(header[1]),
+                'D': int(header[2]),
+                'num' : int(header[3]),
+                'seed': int(header[4]),
+                'algo': header[5],
+                'surrogate': header[6],
+                'expected_local_optima': float(header[7]) if len(header) > 7 else None
+            }
+
+            # 2. Fitness
+            fitness_history = [(float(line.split()[0]), int(line.split()[1])) for line in fitness_section.strip().split('\n')]
+
+            # 3. Fidelity
+            fidelity_history = [
+                (float(line.split()[0]), float(line.split()[1]), int(line.split()[2]))
+                for line in fidelity_section.strip().split('\n') if line.strip()
+            ]
+
+            # 4. Coefs
+            coefs = np.array(ast.literal_eval(coefs_section.strip()))
+            final_scatter = np.array([])
+
+            # 5. best_sol (optionnel)
+            best_sol = np.array(ast.literal_eval(best_sol_section.strip()), dtype=int) if best_sol_section else None
+
+            return meta, coefs, fitness_history, fidelity_history, final_scatter, best_sol
 
     @property
     def sparsity(self):
@@ -46,15 +69,4 @@ class OptimizationResult:
         return pct, zero_count, total
 
 
-def save_df_as_image(df):
-    height = 0.5 * (len(df) + 1) 
-    fig, ax = plt.subplots(figsize=(10, height)) 
-    ax.axis('off')
-    
-    table = ax.table(cellText=df.values, colLabels=df.columns, rowLabels=df.index, loc='center', cellLoc='center')
-    table.auto_set_font_size(False)
-    table.set_fontsize(10)
-    table.auto_set_column_width(col=list(range(len(df.columns))))
-    
-    save_plot("interaction metrics")
-    plt.close()
+from src.visualization import save_df_as_image
