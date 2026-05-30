@@ -56,10 +56,10 @@ class OptimizeCommand(Command):
                 f.write(f"{pred} {real} {n_eval}\n")
 
             f.write("#\n")
-            f.write(f"{coefs}\n")
+            f.write(f"{best_sol.tolist()}\n")
 
             f.write("#\n")
-            f.write(f"{best_sol.tolist()}\n")
+            f.write(f"{coefs}\n")
 
     def execute(self):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

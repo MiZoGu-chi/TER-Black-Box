@@ -20,9 +20,9 @@ class OptimizationResult:
             # ancien format (5 sections) : meta | fitness | fidelity | scatter | coefs
             if len(sections) == 5 and not sections[3].strip().startswith('['):
                 meta_section, fitness_section, fidelity_section, _, coefs_section = sections
-            # nouveau format (5 sections) : meta | fitness | fidelity | coefs | best_sol
+            # nouveau format (5 sections) : meta | fitness | fidelity | best_sol | coefs
             elif len(sections) == 5 and sections[3].strip().startswith('['):
-                meta_section, fitness_section, fidelity_section, coefs_section, best_sol_section = sections
+                meta_section, fitness_section, fidelity_section, best_sol_section, coefs_section = sections
             elif len(sections) == 4:
                 meta_section, fitness_section, fidelity_section, coefs_section = sections
             else:
