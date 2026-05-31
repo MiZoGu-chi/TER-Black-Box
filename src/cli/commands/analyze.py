@@ -7,8 +7,8 @@ from .base import Command
 
 from src.core.nk import load_landscape_and_masks
 
-from src.utils.io_utils import OptimizationResult, save_df_as_image
-from src.visualization import plot_aggregated_fidelity, plot_aggregated_fitness_distributions, plot_aggregated_convergence, plot_aggregated_fidelity_with_time
+from src.utils.io_utils import OptimizationResult
+from src.visualization import plot_aggregated_fidelity, plot_aggregated_fitness_distributions, plot_aggregated_convergence, plot_aggregated_fidelity_with_time, plot_confusion_metrics_distribution
 from src.core.evaluation import get_surrogate_interaction, compare_interaction, compute_confusion_metrics
 
 class AnalyzeCommand(Command):
@@ -17,7 +17,7 @@ class AnalyzeCommand(Command):
 
         files = self._get_files()
 
-        aggregated_matrix = {}
+        all_matrices_by_K = defaultdict(list)
 
         maes = []
 
@@ -29,7 +29,7 @@ class AnalyzeCommand(Command):
         fitness_trajectories_by_K = defaultdict(list)
         fidelity_samples_by_K = defaultdict(list)
         final_scatter_by_K = defaultdict(list)
-        expected_local_optima_by_K = defaultdict(list)
+        mean_local_optima_by_K = defaultdict(list)
 
         for file in files:
             try:
@@ -41,14 +41,12 @@ class AnalyzeCommand(Command):
                 if plot_N is None:
                     plot_N, plot_surrogate, plot_algo = N, meta['surrogate'], meta['algo']
 
-                if meta.get('expected_local_optima') is not None:
-                    expected_local_optima_by_K[K].append(meta['expected_local_optima'])
+                if meta.get('mean_local_optima') is not None:
+                    mean_local_optima_by_K[K].append(meta['mean_local_optima'])
 
-                if K not in aggregated_matrix:
-                    aggregated_matrix[K] = np.zeros_like(confusion_matrix)
-                aggregated_matrix[K] += confusion_matrix
+                all_matrices_by_K[K].append(confusion_matrix)
 
-                print_run_summary(file.name, confusion_matrix, sparsity, N, K)       
+                print_run_summary(file.name, confusion_matrix, sparsity, N, K)
 
                 if len(fidelity) > 0:
                     fidelity_samples_by_K[K].extend(fidelity)
@@ -62,13 +60,13 @@ class AnalyzeCommand(Command):
 
                     last_score = fitness[-1][0]
                     max_fitness_by_K[K].append(last_score)
-                
+
             except Exception as e:
                 print(f"Erreur lors de l'analyse de {file.name} : {e}")
 
         K_str = "_".join(str(k) for k in sorted(all_K))
         plot_subdir = f"{plot_N}/{K_str}/{plot_surrogate}/{plot_algo}" if plot_N else None
-        self._report_results(aggregated_matrix, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, expected_local_optima_by_K, plot_subdir)
+        self._report_results(all_matrices_by_K, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, mean_local_optima_by_K, plot_subdir, plot_surrogate, plot_algo)
 
 
     def _get_mae(self, fidelity_history):
@@ -76,36 +74,28 @@ class AnalyzeCommand(Command):
         reals = [p[1] for p in fidelity_history]
         return mean_absolute_error(reals, preds)
 
-    def _report_results(self, aggregated_matrix, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, expected_local_optima_by_K, subdir=None):
-
-        # concaténation des matrices de confusions
-        df_metrics = pd.concat([
-            create_metrics_dataframe(m, N, k)
-            for k, m in sorted(aggregated_matrix.items())
-        ], ignore_index=True)
+    def _report_results(self, all_matrices_by_K, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, mean_local_optima_by_K, subdir=None, surrogate=None, algo=None):
 
         for K, scores in sorted(max_fitness_by_K.items()):
             mean_score = np.mean(scores)
-            
+
             print(f'Score agrégé sur {len(scores)} runs pour K={K}: {mean_score:.4f}')
             print(f'Ecart-type sur {len(scores)} runs pour K={K}: {np.std(scores):.4f}')
-            
-            # On vérifie si on a des données d'espérance valides pour ce K
-            if K in expected_local_optima_by_K and len(expected_local_optima_by_K[K]) > 0:
-                mean_exp = np.mean(expected_local_optima_by_K[K])
-                print(f'Espérance sur {len(scores)} runs pour K={K}: {mean_exp:.4f}')
+
+            if K in mean_local_optima_by_K and len(mean_local_optima_by_K[K]) > 0:
+                mean_exp = np.mean(mean_local_optima_by_K[K])
+                print(f'Moy. optima locaux sur {len(scores)} runs pour K={K}: {mean_exp:.4f}')
                 print(f'Amélioration sur {len(scores)} runs pour K={K}: {mean_score - mean_exp:+.4f}\n')
             else:
-                print(f'Espérance sur {len(scores)} runs pour K={K}: Non disponible (ancienne run)\n')
+                print(f'Moy. optima locaux sur {len(scores)} runs pour K={K}: Non disponible (ancienne run)\n')
 
-        # Si le dictionnaire est totalement vide (anciennes runs uniquement), on passe None aux graphiques
-        if not any(expected_local_optima_by_K.values()):
-            expected_local_optima_by_K = None
+        if not any(mean_local_optima_by_K.values()):
+            mean_local_optima_by_K = None
 
-        plot_aggregated_fitness_distributions(max_fitness_by_K, expected_local_optima_by_K, subdir=subdir)
-        plot_aggregated_convergence(fitness_trajectories_by_K, expected_local_optima_by_K, subdir=subdir)
+        plot_aggregated_fitness_distributions(max_fitness_by_K, mean_local_optima_by_K, subdir=subdir)
+        plot_aggregated_convergence(fitness_trajectories_by_K, mean_local_optima_by_K, subdir=subdir)
         plot_aggregated_fidelity_with_time(fidelity_samples_by_K, subdir=subdir)
-        save_df_as_image(df_metrics, subdir=subdir)
+        plot_confusion_metrics_distribution(all_matrices_by_K, N, surrogate=surrogate, algo=algo, subdir=subdir)
 
 ##########
 

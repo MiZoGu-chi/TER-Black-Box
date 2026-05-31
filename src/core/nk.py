@@ -71,7 +71,7 @@ class NK_Landscape:
         return {order: sorted(groups) for order, groups in interactions.items()}
 
 
-    def expected_local_optima(self, search_fn, n_runs=100, seed=42):
+    def mean_local_optima(self, search_fn, n_runs=100, seed=42):
         
         local_seed = np.random.default_rng(seed)
         fit_fn = get_black_box_fitness_fn(self)

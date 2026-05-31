@@ -52,9 +52,11 @@ def plot_compare_models(models, D, instance_name, loss_function):
 
 
 def plot_aggregated_fitness_distributions(max_fitness_by_K, expected_fitness_by_K=None, subdir=None):
+    sorted_K = [k for k in sorted(max_fitness_by_K.keys()) if len(max_fitness_by_K[k]) > 0]
+    if not sorted_K:
+        return
     with _figure("aggregated_fitness", subdir=subdir):
         plt.figure(figsize=(8, 6))
-        sorted_K = sorted(max_fitness_by_K.keys())
         plt.boxplot([max_fitness_by_K[k] for k in sorted_K], labels=[f"K={k}" for k in sorted_K])
 
         if expected_fitness_by_K is not None:
@@ -62,7 +64,7 @@ def plot_aggregated_fitness_distributions(max_fitness_by_K, expected_fitness_by_
                 if k in expected_fitness_by_K:
                     plt.plot(i + 1, np.mean(expected_fitness_by_K[k]),
                              marker='*', color='red', markersize=10,
-                             linestyle='None', label='Espérance' if i == 0 else "")
+                             linestyle='None', label='Moy. optima locaux' if i == 0 else "")
             plt.legend()
 
         plt.title("Distribution de la fitness par valeur de K", fontsize=14)
@@ -70,7 +72,9 @@ def plot_aggregated_fitness_distributions(max_fitness_by_K, expected_fitness_by_
         plt.grid(axis='y', linestyle='--', alpha=0.7)
 
 
-def plot_aggregated_convergence(fitness_trajectories_by_K, expected_local_optima_by_K=None, subdir=None):
+def plot_aggregated_convergence(fitness_trajectories_by_K, mean_local_optima_by_K=None, subdir=None):
+    if not fitness_trajectories_by_K:
+        return
     with _figure("optimization_convergence", "trajectories", subdir=subdir):
         plt.figure(figsize=(10, 6))
         for K, trajectories in fitness_trajectories_by_K.items():
@@ -88,9 +92,9 @@ def plot_aggregated_convergence(fitness_trajectories_by_K, expected_local_optima
             mean = np.mean(np.array(resampled), axis=0)
             plt.plot(eval_grid, mean, color=color, linewidth=2, label=f"K={K}")
 
-            if expected_local_optima_by_K is not None and K in expected_local_optima_by_K:
-                plt.axhline(y=np.mean(expected_local_optima_by_K[K]),
-                            color=color, linestyle='--', linewidth=1.5, label=f"Espérance (K={K})")
+            if mean_local_optima_by_K is not None and K in mean_local_optima_by_K:
+                plt.axhline(y=np.mean(mean_local_optima_by_K[K]),
+                            color=color, linestyle='--', linewidth=1.5, label=f"Moy. optima locaux (K={K})")
 
         plt.title("Convergence agrégée par K", fontsize=14)
         plt.xlabel("Nombre d'évaluations", fontsize=12)
@@ -100,7 +104,9 @@ def plot_aggregated_convergence(fitness_trajectories_by_K, expected_local_optima
 
 
 def plot_aggregated_fidelity_with_time(fidelity_samples_by_K, subdir=None):
-    sorted_K = sorted(fidelity_samples_by_K.keys())
+    sorted_K = [k for k in sorted(fidelity_samples_by_K.keys()) if len(fidelity_samples_by_K[k]) > 0]
+    if not sorted_K:
+        return
     with _figure("model_training_fidelity", subdir=subdir):
         fig, axes = plt.subplots(1, len(sorted_K), figsize=(7 * len(sorted_K), 6))
         if len(sorted_K) == 1:
@@ -176,8 +182,8 @@ def plot_covariate_shift(covariate_data_by_K, subdir=None):
         plt.tight_layout()
 
 
-def save_df_as_image(df, subdir=None):
-    with _figure("interaction_metrics", subdir=subdir):
+def save_df_as_image(df, filename="interaction_metrics", subdir=None):
+    with _figure(filename, subdir=subdir):
         fig, ax = plt.subplots(figsize=(10, 0.5 * (len(df) + 1)))
         ax.axis('off')
         table = ax.table(cellText=df.values, colLabels=df.columns,
@@ -185,3 +191,73 @@ def save_df_as_image(df, subdir=None):
         table.auto_set_font_size(False)
         table.set_fontsize(10)
         table.auto_set_column_width(col=list(range(len(df.columns))))
+
+
+def plot_confusion_metrics_distribution(all_matrices_by_K, N, surrogate=None, algo=None, subdir=None):
+    from src.core.evaluation import compute_confusion_metrics
+    from matplotlib.patches import Patch
+    from matplotlib.lines import Line2D
+
+    sorted_K = sorted(all_matrices_by_K.keys())
+
+    with _figure("confusion_distribution", subdir=subdir):
+        fig, axes = plt.subplots(1, len(sorted_K), figsize=(6 * len(sorted_K), 5), squeeze=False)
+
+        for ax, K in zip(axes[0], sorted_K):
+            matrices = all_matrices_by_K[K]
+            n_runs = len(matrices)
+            D = matrices[0].shape[0]
+
+            all_tp = np.zeros((n_runs, D))
+            all_fp = np.zeros((n_runs, D))
+            all_fn = np.zeros((n_runs, D))
+
+            for i, m in enumerate(matrices):
+                tp, fp, fn, _, _, _ = compute_confusion_metrics(m)
+                all_tp[i] = tp
+                all_fp[i] = fp
+                all_fn[i] = fn
+
+            positions, data, colors = [], [], []
+            x_tick_pos, x_tick_labels = [], []
+
+            for d in range(D):
+                base = d * 3
+                positions += [base, base + 1]
+                data += [all_tp[:, d], all_fp[:, d]]
+                colors += ['#2ecc71', '#e74c3c']
+                x_tick_pos.append(base + 0.5)
+                x_tick_labels.append(f"Ordre {d + 1}")
+
+            bp = ax.boxplot(data, positions=positions, widths=0.6,
+                            patch_artist=True, showfliers=True)
+            for patch, color in zip(bp['boxes'], colors):
+                patch.set_facecolor(color)
+                patch.set_alpha(0.6)
+
+            for d in range(D):
+                total_real = int(np.median(all_tp[:, d] + all_fn[:, d]))
+                ax.plot(d * 3, total_real, marker='*', color='red',
+                        markersize=13, zorder=5, linestyle='None')
+
+            ax.set_xticks(x_tick_pos)
+            ax.set_xticklabels(x_tick_labels)
+            ax.set_ylabel("Nombre d'interactions", fontsize=11)
+            info = "  ".join(filter(None, [surrogate, algo]))
+            ax.set_title(f"K={K}  N={N}  {info}  {n_runs} runs", fontsize=12)
+            ax.grid(True, alpha=0.3, axis='y')
+
+            legend_elements = [
+                Patch(facecolor='#2ecc71', alpha=0.6, label='TP'),
+                Patch(facecolor='#e74c3c', alpha=0.6, label='FP'),
+                Line2D([0], [0], marker='*', color='red', markersize=10,
+                       linestyle='None', label='Total réel'),
+            ]
+            ax.legend(handles=legend_elements, fontsize=9)
+
+        fig.suptitle(
+            "Comparaison des interactions détectées par le surrogate\n"
+            "avec les interactions réelles du paysage NK",
+            fontsize=13
+        )
+        plt.tight_layout()

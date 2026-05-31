@@ -28,7 +28,7 @@ class OptimizeCommand(Command):
         # self.njobs = 10
 
     @staticmethod
-    def _task_wrapper(N, K, num, seed, args, timestamp, expected_local_optima):
+    def _task_wrapper(N, K, num, seed, args, timestamp, mean_local_optima):
 
         np.random.seed(seed)
         random.seed(seed)
@@ -45,7 +45,7 @@ class OptimizeCommand(Command):
         filename = output_dir / f"opti_{N}_{K}_{num}_{seed}_{args.algo}_{args.surrogate}.txt"
 
         with open(filename, "w") as f:
-            f.write(f"{N} {K} {args.D} {num} {seed} {args.algo} {args.surrogate} {expected_local_optima} \n")
+            f.write(f"{N} {K} {args.D} {num} {seed} {args.algo} {args.surrogate} {mean_local_optima} \n")
             
             f.write("#\n")
             for sol, budg in history:
@@ -74,7 +74,7 @@ class OptimizeCommand(Command):
                     instance_name = f"instances/{N}/{K}/nk_{N}_{K}_{num}.txt"
                     if os.path.exists(instance_name):
                         landscape = NK_Landscape(instance_name)
-                        baselines[(N, K, num)] = landscape.expected_local_optima(search_fn)
+                        baselines[(N, K, num)] = landscape.mean_local_optima(search_fn)
                         
         Parallel(n_jobs=self.n_jobs)(delayed(self._task_wrapper)(N, K, num, seed, self.args, timestamp, baselines[(N, K, num)])
             for N in self.configs_N
