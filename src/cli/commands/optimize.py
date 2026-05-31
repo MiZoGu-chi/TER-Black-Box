@@ -6,8 +6,6 @@ import random
 import multiprocessing
 from pathlib import Path
 
-from sklearn.base import clone
-
 from .base import Command
 from src.core.nk import NK_Landscape, load_landscape_and_masks
 from src.core.surrogate_optimization import run_surrogate_optimization
@@ -36,7 +34,7 @@ class OptimizeCommand(Command):
         random.seed(seed)
 
         landscape, masks = load_landscape_and_masks(N, K, args.D, num)
-        model = clone(MODELS[args.surrogate]['model'])
+        model = MODELS[args.surrogate]['model']
 
         best_fit, best_sol, history, surrogate_model, surrogate_fidelity_history = run_surrogate_optimization(args.budget, N, args.initial_pop_size, landscape, masks, model, ALGORITHMS[args.algo], START_STRATEGIES[args.start])
 

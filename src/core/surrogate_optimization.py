@@ -22,8 +22,8 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
 
     fitness_history.append((best_fit, n_evals))
 
-    while n_evals < budget: 
-        surrogate_model.fit(X_train, Y_train) 
+    while n_evals < budget:
+        surrogate_model.fit(X_train, Y_train)
 
         start_sol = start_fun(best_sol, N) # random par défaut, egreedy et best disponible
 

@@ -40,7 +40,7 @@ if __name__ == "__main__":
     parser_optimize.add_argument("--initial_pop_size", type=int, default=20)
     parser_optimize.add_argument("--surrogate", type=str, default='lasso_lars', choices=MODELS.keys())
     parser_optimize.add_argument("--algo", type=str, default='tabu', choices=ALGORITHMS.keys())
-    parser_optimize.add_argument("--start", type=str, default='best', choices=START_STRATEGIES.keys())
+    parser_optimize.add_argument("--start", type=str, default='rd', choices=START_STRATEGIES.keys())
 
     parser_analyze = subparsers.add_parser('analyze')
     parser_analyze.add_argument("path", type=str, nargs='+')
