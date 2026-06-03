@@ -37,6 +37,7 @@ class OptimizeCommand(Command):
         self.budget = args.budget
         self.initial_pop_size = args.initial_pop_size
         self.start_fn = START_STRATEGIES[args.start]
+        self.tabu_factor = args.tabu_factor
         self.search_fn = get_algorithm(args.algo, tabu_factor=args.tabu_factor)
         self.n_jobs = int(os.environ.get('SLURM_CPUS_PER_TASK', multiprocessing.cpu_count()))
 
@@ -57,7 +58,7 @@ class OptimizeCommand(Command):
         filename = output_dir / f"opti_{N}_{K}_{num}_{seed}_{self.algo}_{self.surrogate_name}.txt"
 
         with open(filename, "w") as f:
-            f.write(f"{N} {K} {self.configs_D} {num} {seed} {self.algo} {self.surrogate_name} {mean_local_optima} \n")
+            f.write(f"{N} {K} {self.configs_D} {num} {seed} {self.algo} {self.surrogate_name} {mean_local_optima} {self.model.alpha} {self.tabu_factor}\n")
 
             f.write("#\n")
             for sol, budg in history:
