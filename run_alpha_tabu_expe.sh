@@ -1,0 +1,16 @@
+#!/bin/bash
+
+ALPHAS=(0.1 0.01 0.001 0.0001)
+TABU_FACTORS=(2 10 50 100)
+N=(64)
+K=(1 2 4)
+
+for alpha in "${ALPHAS[@]}"; do
+    for factor in "${TABU_FACTORS[@]}"; do
+        for n in "${N[@]}"; do
+            for k in "${K[@]}"; do
+                ./run_expe.sh optimize --N "$n" --K "$k" --surrogate lasso_lars --algo cpp_tabu --alpha "$alpha" --tabu_factor "$factor"
+            done
+        done
+    done
+done

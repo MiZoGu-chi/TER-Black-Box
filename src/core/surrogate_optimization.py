@@ -27,6 +27,10 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
     while n_evals < budget:
 
         if n_evals % RETRAIN_EVERY == 0:
+            #print(X_train.shape)
+            #print(Y_train.shape)
+            #print(X_train)
+            #print(Y_train)
             surrogate_model.fit(X_train, Y_train)
 
         start_sol = start_fun(best_sol, N) # random par défaut, egreedy et best disponible
@@ -34,9 +38,12 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
         candidate_sol = search_fun(start_sol, surrogate_model, masks) # tabu par défaut, local search bi et fi disponible
 
         # MODIFICATION IMPORTANTE : on ne réavalue pas / n'étraine pas sur une solution déjà évaluée
-        while tuple(candidate_sol) in solutions_evaluees:  # while si jamais on génére aléatoirement une solution déjà évalué meme si ça parait impropable ... 
-            candidate_sol = np.random.randint(2, size=N)  
+        #while tuple(candidate_sol) in solutions_evaluees:  # while si jamais on génére aléatoirement une solution déjà évalué meme si ça parait impropable ... 
+            #candidate_sol = np.random.randint(2, size=N)  
 
+        if tuple(candidate_sol) in solutions_evaluees:   
+            continue
+        
         solutions_evaluees.add(tuple(candidate_sol))
 
         real_fitness = landscape.eval(candidate_sol) 

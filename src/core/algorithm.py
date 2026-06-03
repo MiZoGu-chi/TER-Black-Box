@@ -163,6 +163,14 @@ ALGORITHMS = {
                   max_iter=len(sol) * 100, seed=np.random.randint(0, 2**31))
 }
 
+def get_algorithm(name, tabu_factor=100):
+    if name == 'cpp_tabu':
+        return lambda sol, mod, msk: SurrogateSearcher(
+            [np.where(m)[0].tolist() for m in msk], len(sol)
+        ).tabu_search(np.asarray(sol, dtype=np.int32), np.asarray(mod.coef_, dtype=np.float64),
+                      max_iter=len(sol) * tabu_factor, seed=np.random.randint(0, 2**31))
+    return ALGORITHMS[name]
+
 BASELINE_ALGORITHMS = { # Uniquement pour pouvoir utiliser fn.__name__ ce qu'on ne peut pas faire avec juste une lambda, potentiellement à revoir 
     'fi': fi_baseline,
     'bi': bi_baseline,
