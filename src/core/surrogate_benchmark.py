@@ -6,6 +6,7 @@ from src.core.data_sampler import generate_dataset
 from src.visualization import plot_compare_models
 
 def run_model_comparison(args, landscape, masks, models_dict):
+    
     print("Génération du dataset d'entraînement...")
     X_train, Y_train = generate_dataset(args.N, args.NB_ENTRAINEMENT, masks, landscape.eval)
 

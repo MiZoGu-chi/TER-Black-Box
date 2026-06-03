@@ -4,6 +4,19 @@ from abc import ABC, abstractmethod
 
 from src.core.algorithm import local_search, best_improvement, get_black_box_fitness_fn
 
+def generate_hamming_neighbors(reference_solution, distance, n_samples, rng):
+    N = len(reference_solution)
+    
+    if distance == 0:
+        return reference_solution[np.newaxis, :]
+        
+    neighbors = np.tile(reference_solution, (n_samples, 1))
+    
+    for i in range(n_samples):
+        mutation_indices = rng.choice(N, size=min(distance, N), replace=False)
+        neighbors[i, mutation_indices] = 1 - neighbors[i, mutation_indices]
+        
+    return neighbors
 
 class EvaluationSampler(ABC):
 
@@ -11,7 +24,7 @@ class EvaluationSampler(ABC):
     def generate_samples(self, N, n_samples, seed, landscape=None):
         pass
 
-    def _set_seed(self, seed):
+    def _set_seed(self, seed): # faire un utils et mettre ça dedans plutot
         np.random.seed(seed)
         random.seed(seed)
 
@@ -72,3 +85,9 @@ class WhiteBoxStratifiedSampler(EvaluationSampler):
         ])
 
         return np.vstack([low_fitness_set, medium_fitness_set, high_fitness_set])
+
+SAMPLERS = {
+    'random': RandomSampler,
+    'stratified': StratifiedSampler,
+    'whitebox': WhiteBoxStratifiedSampler,
+}

@@ -4,10 +4,10 @@ from src.core.data_sampler import generate_random_solutions, evaluate_and_transf
 
 def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, surrogate_model, search_fun, start_fun):
 
+    RETRAIN_EVERY = 1 # à tester pour gain de performance, évaluer l'impact sur la qualité du modéle
+
     fitness_history = []
     surrogate_fidelity_history = [] # utilise pour la courbe de fitness prédite vs réel
-
-    #window_size = args.window_size
     
     n_evals = initial_pop_size
 
@@ -22,12 +22,22 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
 
     fitness_history.append((best_fit, n_evals))
 
+    solutions_evaluees = {tuple(sol) for sol in initial_population} # trouver un nom anglais
+
     while n_evals < budget:
-        surrogate_model.fit(X_train, Y_train)
+
+        if n_evals % RETRAIN_EVERY == 0:
+            surrogate_model.fit(X_train, Y_train)
 
         start_sol = start_fun(best_sol, N) # random par défaut, egreedy et best disponible
 
         candidate_sol = search_fun(start_sol, surrogate_model, masks) # tabu par défaut, local search bi et fi disponible
+
+        # MODIFICATION IMPORTANTE : on ne réavalue pas / n'étraine pas sur une solution déjà évaluée
+        while tuple(candidate_sol) in solutions_evaluees:  # while si jamais on génére aléatoirement une solution déjà évalué meme si ça parait impropable ... 
+            candidate_sol = np.random.randint(2, size=N)  
+
+        solutions_evaluees.add(tuple(candidate_sol))
 
         real_fitness = landscape.eval(candidate_sol) 
         n_evals += 1

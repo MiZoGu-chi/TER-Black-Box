@@ -46,8 +46,9 @@ if __name__ == "__main__":
     parser_analyze.add_argument("path", type=str, nargs='+')
 
     parser_evaluate = subparsers.add_parser('evaluate')
-    parser_evaluate.add_argument("path", type=str, help="Chemin vers le fichier opti_...txt dont on souhaite évaluer le surrogate")
-    parser_evaluate.add_argument("--samples", type=int, default=1000, help="Nombre d'échantillons à tester")
+    parser_evaluate.add_argument("path", type=str)
+    parser_evaluate.add_argument("--samples", type=int, default=1000)
+    parser_evaluate.add_argument("--sampler", type=str, default='stratified', choices=['random', 'stratified', 'whitebox'])
 
     args = parser.parse_args()
 

@@ -2,6 +2,7 @@ import numpy as np
 import random
 
 from src.core.data_sampler import transform
+from src.core.cpp.surrogate_search import SurrogateSearcher
 
 def get_neighborhood(solution):
     N = len(solution)
@@ -15,7 +16,8 @@ def get_neighborhood(solution):
 
 def tabu_search(current_best, fitness_fn):
     N = len(current_best)
-    max_iter = N * 2
+    exploration_factor = 2
+    max_iter = N * exploration_factor
     current_solution = current_best.copy()
 
     params1 = int(N // 10) 
@@ -148,10 +150,20 @@ def bi_baseline(sol, fit_fn):
 ALGORITHMS = {
     'fi': lambda sol, mod, msk: local_search(sol, get_surrogate_fitness_fn(mod, msk), first_improvement),
     'bi': lambda sol, mod, msk: local_search(sol, get_surrogate_fitness_fn(mod, msk), best_improvement),
-    'tabu': lambda sol, mod, msk: tabu_search(sol, get_surrogate_fitness_fn(mod, msk))
+    'tabu': lambda sol, mod, msk: tabu_search(sol, get_surrogate_fitness_fn(mod, msk)),
+    'cpp_hc': lambda sol, mod, msk: SurrogateSearcher(
+        [np.where(m)[0].tolist() for m in msk], len(sol)
+    ).hill_climber(
+        np.asarray(sol, dtype=np.int32),
+        np.asarray(mod.coef_, dtype=np.float64)
+    ),
+    'cpp_tabu': lambda sol, mod, msk: SurrogateSearcher(
+        [np.where(m)[0].tolist() for m in msk], len(sol)
+    ).tabu_search(np.asarray(sol, dtype=np.int32), np.asarray(mod.coef_, dtype=np.float64),
+                  max_iter=len(sol) * 100, seed=np.random.randint(0, 2**31))
 }
 
-BASELINE_ALGORITHMS = {
+BASELINE_ALGORITHMS = { # Uniquement pour pouvoir utiliser fn.__name__ ce qu'on ne peut pas faire avec juste une lambda, potentiellement à revoir 
     'fi': fi_baseline,
     'bi': bi_baseline,
     'tabu': tabu_search 

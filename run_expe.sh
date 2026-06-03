@@ -9,7 +9,7 @@ if [[ "$CLUSTER_NAME" == *"nautilus"* ]]; then
         --cpus-per-task=20 \
         --mem-per-cpu=4G \
         --nodes=1 \
-        slurm/runscript_array_job_slurm.sh "$@"
+        slurm/job.sh "$@"
 
 elif [[ "$CLUSTER_NAME" == "stargate" ]]; then
     export NEED_MODULE=0
@@ -18,5 +18,5 @@ elif [[ "$CLUSTER_NAME" == "stargate" ]]; then
         --cpus-per-task=40 \
         --mem-per-cpu=10G \
         --nodes=1 \
-        slurm/runscript_array_job_slurm.sh "$@"
+        slurm/job.sh "$@"
 fi

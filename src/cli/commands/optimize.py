@@ -25,7 +25,7 @@ class OptimizeCommand(Command):
         self.config_n_instances = range(10)
         self.algo = args.algo
         self.n_jobs = int(os.environ.get('SLURM_CPUS_PER_TASK', multiprocessing.cpu_count()))
-        # self.njobs = 10
+        # self.n_jobs = 10
 
     @staticmethod
     def _task_wrapper(N, K, num, seed, args, timestamp, mean_local_optima):
@@ -36,7 +36,12 @@ class OptimizeCommand(Command):
         landscape, masks = load_landscape_and_masks(N, K, args.D, num)
         model = MODELS[args.surrogate]['model']
 
-        best_fit, best_sol, history, surrogate_model, surrogate_fidelity_history = run_surrogate_optimization(args.budget, N, args.initial_pop_size, landscape, masks, model, ALGORITHMS[args.algo], START_STRATEGIES[args.start])
+        # AJOUT SUITE AU CRASH DE LASSO LARS
+        try:
+            best_fit, best_sol, history, surrogate_model, surrogate_fidelity_history = run_surrogate_optimization(args.budget, N, args.initial_pop_size, landscape, masks, model, ALGORITHMS[args.algo], START_STRATEGIES[args.start])
+        except ValueError as e:
+            print(f"Crash ignoré (Seed {seed}, N={N}, K={K}), surrogate : {model}:  : {e}")
+            return
 
         coefs = surrogate_model.coef_.tolist()
 
@@ -64,8 +69,9 @@ class OptimizeCommand(Command):
     def execute(self):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        search_fn = BASELINE_ALGORITHMS[self.algo]
- 
+        baseline_algo = 'bi' if self.algo.startswith('cpp_') else self.algo
+        search_fn = BASELINE_ALGORITHMS[baseline_algo]
+
         baselines = {}
  
         for N in self.configs_N:
