@@ -22,7 +22,7 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
 
     fitness_history.append((best_fit, n_evals))
 
-    solutions_evaluees = {tuple(sol) for sol in initial_population} # trouver un nom anglais
+    # solutions_evaluees = {tuple(sol) for sol in initial_population} # trouver un nom anglais
 
     while n_evals < budget:
 
@@ -41,10 +41,10 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
         #while tuple(candidate_sol) in solutions_evaluees:  # while si jamais on génére aléatoirement une solution déjà évalué meme si ça parait impropable ... 
             #candidate_sol = np.random.randint(2, size=N)  
 
-        if tuple(candidate_sol) in solutions_evaluees:   
-            continue
+        # if tuple(candidate_sol) in solutions_evaluees:   # tanpis si on retrouve le meme point
+        #     continue
         
-        solutions_evaluees.add(tuple(candidate_sol))
+        # solutions_evaluees.add(tuple(candidate_sol))
 
         real_fitness = landscape.eval(candidate_sol) 
         n_evals += 1
@@ -56,9 +56,8 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
 
         predicted_fitness = surrogate_model.predict(candidate_walsh)[0]
 
-        if n_evals % 10 == 0:
-            print(f"Iteration : {n_evals} ; Score prédit {predicted_fitness} ; Score réel {real_fitness}")
-            surrogate_fidelity_history.append((predicted_fitness, real_fitness, n_evals))
+        print(f"Iteration : {n_evals} ; Score prédit {predicted_fitness} ; Score réel {real_fitness}")
+        surrogate_fidelity_history.append((predicted_fitness, real_fitness, n_evals))
 
         if real_fitness > best_fit:
             best_fit = real_fitness

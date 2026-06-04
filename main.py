@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser_evaluate = subparsers.add_parser('evaluate')
     parser_evaluate.add_argument("path", type=str)
     parser_evaluate.add_argument("--samples", type=int, default=1000)
-    parser_evaluate.add_argument("--sampler", type=str, default='stratified', choices=['random', 'stratified', 'whitebox'])
+    parser_evaluate.add_argument("--sampler", type=str, default='whitebox', choices=['random', 'stratified', 'whitebox'])
 
     args = parser.parse_args()
 

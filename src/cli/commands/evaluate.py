@@ -44,13 +44,11 @@ class EvaluateCommand(Command):
                 meta = opti_res.meta
                 N, K, D, num, run_seed = meta['N'], meta['K'], meta['D'], meta['num'], meta['seed']
 
-                # Configuration des infos pour le dessin
                 if plot_subdir is None:
                     plot_subdir = f"{N}/{K}/{meta['surrogate']}/{meta['algo']}"
                 if plot_N is None:
                     plot_N = N
 
-                # Chargement de l'environnement (UNE SEULE FOIS par fichier)
                 model = clone(MODELS[meta['surrogate']]['model'])
                 model.coef_ = np.array(opti_res.coefs)
                 model.intercept_ = 0.0
@@ -69,7 +67,7 @@ class EvaluateCommand(Command):
                 # Fidélité en s'éloignant petit à petit de la meilleur solution trouvée
                 if opti_res.best_sol is not None: # rétrocompatibilité avec les anciens fichiers
                     n_runs_by_K[K] += 1
-                    rng = np.random.default_rng(run_seed) # attention on a déjà fait une fonction pour la rng
+                    rng = np.random.default_rng(run_seed) # attention on a déjà fait une fonction pour la rng, à remplacer
 
                     for dist in _distance_grid(N, 9): 
                         sols = generate_hamming_neighbors(opti_res.best_sol, int(dist), self.args.samples // 10, rng) # casting inutile ?
