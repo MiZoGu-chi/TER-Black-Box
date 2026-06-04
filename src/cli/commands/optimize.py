@@ -75,7 +75,8 @@ class OptimizeCommand(Command):
             f.write(f"{coefs}\n")
 
     def execute(self):
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        job_id = os.environ.get('SLURM_JOB_ID', 'local')
+        timestamp = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{job_id}"
 
         baseline_algo = 'bi' if self.algo.startswith('cpp_') else self.algo
         search_fn = BASELINE_ALGORITHMS[baseline_algo]

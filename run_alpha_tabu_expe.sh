@@ -3,7 +3,7 @@
 ALPHAS=(0.1 0.01 0.001 0.0001)
 TABU_FACTORS=(2 10 50 100)
 N=(64)
-K=(8)
+K=(1 2 4 8)
 
 for alpha in "${ALPHAS[@]}"; do
     for factor in "${TABU_FACTORS[@]}"; do
