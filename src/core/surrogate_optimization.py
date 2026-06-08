@@ -15,8 +15,13 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
 
     X_train, Y_train = evaluate_and_transform(masks, landscape.eval, initial_population)
 
+    # Listes Python au lieu de numpy arrays pour accumuler les données d'entraînement :
+    # np.vstack/np.append recopient tout le tableau à chaque itération (O(n) copies × budget itérations = O(n²) au total)
+    # list.append est O(1) amorti — on ne convertit en numpy qu'au moment du fit
+    X_list = list(X_train)
+    Y_list = list(Y_train)
 
-    best_fit_pos = np.argmax(Y_train) 
+    best_fit_pos = np.argmax(Y_train)
     best_sol = initial_population[best_fit_pos]
     best_fit = Y_train[best_fit_pos]
 
@@ -28,11 +33,7 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
     while n_evals < budget:
 
         if n_evals % RETRAIN_EVERY == 0:
-            #print(X_train.shape)
-            #print(Y_train.shape)
-            #print(X_train)
-            #print(Y_train)
-            surrogate_model.fit(X_train, Y_train)
+            surrogate_model.fit(np.array(X_list), np.array(Y_list))
 
         start_sol = start_fun(best_sol, N) # random par défaut, egreedy et best disponible
 
@@ -46,7 +47,8 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
                 case 'skip':
                     continue
                 case 'random':
-                    candidate_sol = np.random.randint(2, size=N)
+                    while tuple(candidate_sol) in visited:
+                        candidate_sol = np.random.randint(2, size=N)
                     is_random = True
 
         real_fitness = landscape.eval(candidate_sol)
@@ -56,8 +58,8 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
 
         candidate_walsh = transform(masks, [candidate_sol])
 
-        X_train = np.vstack([X_train, candidate_walsh])
-        Y_train = np.append(Y_train, real_fitness)
+        X_list.append(candidate_walsh[0])
+        Y_list.append(real_fitness)
 
         predicted_fitness = surrogate_model.predict(candidate_walsh)[0]
 
