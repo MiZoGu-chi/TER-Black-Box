@@ -2,7 +2,7 @@ import numpy as np
 
 from src.core.data_sampler import generate_random_solutions, evaluate_and_transform, transform
 
-def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, surrogate_model, search_fun, start_fun):
+def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, surrogate_model, search_fun, start_fun, duplicate_strategy='ignore'):
 
     RETRAIN_EVERY = 1 # à tester pour gain de performance, évaluer l'impact sur la qualité du modéle
 
@@ -23,6 +23,7 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
     fitness_history.append((best_fit, n_evals))
 
     # solutions_evaluees = {tuple(sol) for sol in initial_population} # trouver un nom anglais
+    visited = {tuple(sol) for sol in initial_population}
 
     while n_evals < budget:
 
@@ -37,17 +38,21 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
 
         candidate_sol = search_fun(start_sol, surrogate_model, masks) # tabu par défaut, local search bi et fi disponible
 
-        # MODIFICATION IMPORTANTE : on ne réavalue pas / n'étraine pas sur une solution déjà évaluée
-        #while tuple(candidate_sol) in solutions_evaluees:  # while si jamais on génére aléatoirement une solution déjà évalué meme si ça parait impropable ... 
-            #candidate_sol = np.random.randint(2, size=N)  
+        is_random = False
+        if tuple(candidate_sol) in visited:
+            match duplicate_strategy:
+                case 'ignore':
+                    pass
+                case 'skip':
+                    continue
+                case 'random':
+                    candidate_sol = np.random.randint(2, size=N)
+                    is_random = True
 
-        # if tuple(candidate_sol) in solutions_evaluees:   # tanpis si on retrouve le meme point
-        #     continue
-        
-        # solutions_evaluees.add(tuple(candidate_sol))
-
-        real_fitness = landscape.eval(candidate_sol) 
+        real_fitness = landscape.eval(candidate_sol)
         n_evals += 1
+
+        visited.add(tuple(candidate_sol))
 
         candidate_walsh = transform(masks, [candidate_sol])
 
@@ -57,7 +62,13 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
         predicted_fitness = surrogate_model.predict(candidate_walsh)[0]
 
         print(f"Iteration : {n_evals} ; Score prédit {predicted_fitness} ; Score réel {real_fitness}")
-        surrogate_fidelity_history.append((predicted_fitness, real_fitness, n_evals))
+
+        # En random, les derniers points évalués par le surrogate ont tous une fitness moyenne (les points aux niveaux d'itéations le plus élévés ne sont pas au zones attendues)
+        # Cela peut porter confusion aux niveau d'historicité ds le graphe de fidelité de l'optimisation
+        # Par conséquent si la solution est random, on entraine bien le modèle surrogate dessus mais on ne l'ajoute pas à l'historique de fidélité
+        # Implémentaion peut-être un peu faiblarde, à revoir
+        if not is_random: 
+            surrogate_fidelity_history.append((predicted_fitness, real_fitness, n_evals))
 
         if real_fitness > best_fit:
             best_fit = real_fitness
@@ -69,4 +80,6 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
     fitness_history.append((best_fit, budget))
 
     return best_fit, best_sol, fitness_history, surrogate_model, surrogate_fidelity_history
+
+DUPLICATE_STRATEGIES = ['ignore', 'random', 'skip']
 

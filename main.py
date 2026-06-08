@@ -9,6 +9,7 @@ from sklearn.exceptions import ConvergenceWarning
 from src.cli.commands import OptimizeCommand, CompareCommand, AnalyzeCommand, EvaluateCommand
 from src.core.models import MODELS
 from src.core.algorithm import ALGORITHMS, START_STRATEGIES
+from src.core.surrogate_optimization import DUPLICATE_STRATEGIES
 
 def setup_environment():
     patch_sklearn()
@@ -43,6 +44,7 @@ if __name__ == "__main__":
     parser_optimize.add_argument("--start", type=str, default='rd', choices=START_STRATEGIES.keys())
     parser_optimize.add_argument("--alpha", type=float, default=0.001, help="alpha de lasso lars : terme de régularisation L1")
     parser_optimize.add_argument("--tabu_factor", type=int, default=10)
+    parser_optimize.add_argument("--duplicate_strategy", type=str, default='ignore', choices=DUPLICATE_STRATEGIES)
     instance_selector = parser_optimize.add_mutually_exclusive_group()
     instance_selector.add_argument("--instances", type=int, nargs='+', choices=range(10))
     instance_selector.add_argument("--n_instances", type=int, default=10, choices=range(1, 11))

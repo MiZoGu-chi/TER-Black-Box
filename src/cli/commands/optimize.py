@@ -39,7 +39,20 @@ class OptimizeCommand(Command):
         self.start_fn = START_STRATEGIES[args.start]
         self.tabu_factor = args.tabu_factor
         self.search_fn = get_algorithm(args.algo, tabu_factor=args.tabu_factor)
+        self.duplicate_strategy = args.duplicate_strategy
         self.n_jobs = int(os.environ.get('SLURM_CPUS_PER_TASK', multiprocessing.cpu_count()))
+
+    def _output_dir(self, N, K, timestamp):
+        path = Path("results/opti_output") / str(N) / str(K) / self.surrogate_name
+
+        if 'alpha' in self.model.get_params():
+            path = path / f"{self.model.alpha:g}"
+
+        path = path / self.algo
+        if 'tabu' in self.algo:
+            path = path / str(self.tabu_factor)
+
+        return path / f"run_{timestamp}"
 
     def _run_instance(self, N, K, num, seed, timestamp, mean_local_optima):
 
@@ -49,16 +62,16 @@ class OptimizeCommand(Command):
         landscape, masks = load_landscape_and_masks(N, K, self.configs_D, num)
 
         best_fit, best_sol, history, surrogate_model, surrogate_fidelity_history = run_surrogate_optimization(
-            self.budget, N, self.initial_pop_size, landscape, masks, self.model, self.search_fn, self.start_fn)
+            self.budget, N, self.initial_pop_size, landscape, masks, self.model, self.search_fn, self.start_fn, self.duplicate_strategy)
 
         coefs = surrogate_model.coef_.tolist()
 
-        output_dir = Path(f"results/opti_output/N{N}_K{K}_D{self.configs_D}_{self.surrogate_name}/run_{timestamp}")
+        output_dir = self._output_dir(N, K, timestamp)
         output_dir.mkdir(parents=True, exist_ok=True)
         filename = output_dir / f"opti_{N}_{K}_{num}_{seed}_{self.algo}_{self.surrogate_name}.txt"
 
         with open(filename, "w") as f:
-            f.write(f"{N} {K} {self.configs_D} {num} {seed} {self.algo} {self.surrogate_name} {mean_local_optima} {self.model.alpha} {self.tabu_factor}\n")
+            f.write(f"{N} {K} {self.configs_D} {num} {seed} {self.algo} {self.surrogate_name} {mean_local_optima} {self.model.alpha} {self.tabu_factor} {self.duplicate_strategy}\n")
 
             f.write("#\n")
             for sol, budg in history:
@@ -98,7 +111,13 @@ class OptimizeCommand(Command):
             for seed in self.config_seeds
         )
 
-        result_files = sorted(Path("results/opti_output").rglob(f"*run_{timestamp}*/opti_*.txt"))
+        result_files = sorted(
+            self._output_dir(N, K, timestamp) / f"opti_{N}_{K}_{num}_{seed}_{self.algo}_{self.surrogate_name}.txt"
+            for N in self.configs_N
+            for K in self.configs_K
+            for num in self.config_n_instances
+            for seed in self.config_seeds
+        )
 
         for f in result_files:
             try:

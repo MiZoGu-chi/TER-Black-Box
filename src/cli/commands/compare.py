@@ -6,19 +6,27 @@ from src.core.nk import NK_Landscape
 from src.core.models import MODELS
 
 class CompareCommand(Command):
+
+    def __init__(self, args):
+        super().__init__(args)
+        self.N = args.N
+        self.K = args.K
+        self.num = args.num
+        self.D = args.D
+
     def execute(self):
 
-        instance_name = f"instances/{self.args.N}/{self.args.K}/nk_{self.args.N}_{self.args.K}_{self.args.num}.txt"
+        instance_name = f"instances/{self.N}/{self.K}/nk_{self.N}_{self.K}_{self.num}.txt"
 
         if not os.path.exists(instance_name):
             print(f"L'instance {instance_name} est inexistante.")
-            return  
+            return
 
         landscape = NK_Landscape(instance_name)
         print(f"Instance chargée : {instance_name}")
 
-        print(f"Génération des masques (D={self.args.D})...")
-        masks = generate_masks(self.args.N, self.args.D)
+        print(f"Génération des masques (D={self.D})...")
+        masks = generate_masks(self.N, self.D)
 
         run_model_comparison(self.args, landscape, masks, MODELS)
 

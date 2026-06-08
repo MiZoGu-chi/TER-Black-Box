@@ -19,6 +19,7 @@ class EvaluateCommand(Command):
     def __init__(self, args):
         super().__init__(args)
         self.sampler = SAMPLERS[args.sampler]()
+        self.samples = args.samples
 
     def execute(self):
         files = self._get_files()
@@ -57,7 +58,7 @@ class EvaluateCommand(Command):
                 fit_fn = get_black_box_fitness_fn(landscape)
 
                 # Fidélité sur des points qui ne correspondent pas forcément aux zones explorée
-                test_solutions = self.sampler.generate_samples(N, self.args.samples, seed=run_seed, landscape=landscape)
+                test_solutions = self.sampler.generate_samples(N, self.samples, seed=run_seed, landscape=landscape)
                 real_fitness_global = fit_fn(test_solutions)
                 pred_fitness_global = model.predict(transform(masks, test_solutions))
 
@@ -70,7 +71,7 @@ class EvaluateCommand(Command):
                     rng = np.random.default_rng(run_seed) # attention on a déjà fait une fonction pour la rng, à remplacer
 
                     for dist in _distance_grid(N, 9): 
-                        sols = generate_hamming_neighbors(opti_res.best_sol, int(dist), self.args.samples // 10, rng) # casting inutile ?
+                        sols = generate_hamming_neighbors(opti_res.best_sol, int(dist), self.samples // 10, rng) # casting inutile ?
                         
                         real_f = fit_fn(sols)
                         pred_f = model.predict(transform(masks, sols))
