@@ -5,7 +5,7 @@ CLUSTER_NAME=$(hostname)
 if [[ "$CLUSTER_NAME" == *"nautilus"* ]]; then
     export NEED_MODULE=1
     sbatch \
-        --qos=medium \
+        --qos=short \
         --cpus-per-task=20 \
         --mem-per-cpu=4G \
         --nodes=1 \
