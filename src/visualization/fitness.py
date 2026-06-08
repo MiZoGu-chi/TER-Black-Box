@@ -8,26 +8,6 @@ import matplotlib.colors as mcolors
 from .utils import figure, K_COLORS
 
 
-def plot_aggregated_fitness_distributions(max_fitness_by_K, expected_fitness_by_K=None, subdir=None):
-    sorted_K = [k for k in sorted(max_fitness_by_K.keys()) if len(max_fitness_by_K[k]) > 0]
-    if not sorted_K:
-        return
-    with figure("aggregated_fitness", subdir=subdir):
-        plt.figure(figsize=(8, 6))
-        plt.boxplot([max_fitness_by_K[k] for k in sorted_K], labels=[f"K={k}" for k in sorted_K])
-
-        if expected_fitness_by_K is not None:
-            for i, k in enumerate(sorted_K):
-                if k in expected_fitness_by_K:
-                    plt.plot(i + 1, np.mean(expected_fitness_by_K[k]),
-                             marker='*', color='red', markersize=10,
-                             linestyle='None', label='Moy. optima locaux' if i == 0 else "")
-            plt.legend()
-
-        plt.title("Distribution de la fitness par valeur de K", fontsize=14)
-        plt.ylabel("Fitness", fontsize=12)
-        plt.grid(axis='y', linestyle='--', alpha=0.7)
-
 
 def plot_aggregated_convergence(fitness_trajectories_by_K, mean_local_optima_by_K=None, subdir=None):
     if not fitness_trajectories_by_K:

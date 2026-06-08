@@ -8,7 +8,7 @@ from .base import Command
 from src.core.nk import load_landscape_and_masks
 
 from src.utils.io_utils import OptimizationResult
-from src.visualization import plot_aggregated_fidelity, plot_aggregated_fitness_distributions, plot_aggregated_convergence, plot_aggregated_fidelity_with_time, plot_confusion_metrics_distribution
+from src.visualization import plot_aggregated_fidelity, plot_aggregated_convergence, plot_aggregated_fidelity_with_time, plot_confusion_metrics_distribution
 from src.core.evaluation import get_surrogate_interaction, compare_interaction, compute_confusion_metrics
 
 class AnalyzeCommand(Command):
@@ -22,7 +22,7 @@ class AnalyzeCommand(Command):
         maes = []
 
         N = 0
-        plot_N, plot_surrogate, plot_algo = None, None, None
+        plot_N, plot_surrogate, plot_algo, plot_alpha, plot_tabu_factor = None, None, None, None, None
         all_K = set()
 
         max_fitness_by_K = defaultdict(list)
@@ -40,6 +40,7 @@ class AnalyzeCommand(Command):
 
                 if plot_N is None:
                     plot_N, plot_surrogate, plot_algo = N, meta['surrogate'], meta['algo']
+                    plot_alpha, plot_tabu_factor = meta.get('alpha'), meta.get('tabu_factor')
 
                 if meta.get('mean_local_optima') is not None:
                     mean_local_optima_by_K[K].append(meta['mean_local_optima'])
@@ -65,7 +66,15 @@ class AnalyzeCommand(Command):
                 print(f"Erreur lors de l'analyse de {file.name} : {e}")
 
         K_str = "_".join(str(k) for k in sorted(all_K))
-        plot_subdir = f"{plot_N}/{K_str}/{plot_surrogate}/{plot_algo}" if plot_N else None
+        if plot_N:
+            plot_subdir = f"{plot_N}/{K_str}/{plot_surrogate}"
+            if plot_alpha is not None:
+                plot_subdir += f"/{plot_alpha:g}"
+            plot_subdir += f"/{plot_algo}"
+            if plot_tabu_factor is not None and 'tabu' in plot_algo:
+                plot_subdir += f"/{plot_tabu_factor}"
+        else:
+            plot_subdir = None
         self._report_results(all_matrices_by_K, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, mean_local_optima_by_K, plot_subdir, plot_surrogate, plot_algo)
 
 
@@ -92,7 +101,6 @@ class AnalyzeCommand(Command):
         if not any(mean_local_optima_by_K.values()):
             mean_local_optima_by_K = None
 
-        plot_aggregated_fitness_distributions(max_fitness_by_K, mean_local_optima_by_K, subdir=subdir)
         plot_aggregated_convergence(fitness_trajectories_by_K, mean_local_optima_by_K, subdir=subdir)
         plot_aggregated_fidelity_with_time(fidelity_samples_by_K, subdir=subdir)
         plot_confusion_metrics_distribution(all_matrices_by_K, N, surrogate=surrogate, algo=algo, subdir=subdir)

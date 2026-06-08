@@ -38,7 +38,9 @@ class OptimizationResult:
                 'seed': int(header[4]),
                 'algo': header[5],
                 'surrogate': header[6],
-                'mean_local_optima': float(header[7]) if len(header) > 7 else None
+                'mean_local_optima': float(header[7]) if len(header) > 7 else None,
+                'alpha': float(header[8]) if len(header) > 8 else None,
+                'tabu_factor': int(header[9]) if len(header) > 9 else None,
             }
 
             # 2. Fitness

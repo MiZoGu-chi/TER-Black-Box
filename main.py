@@ -46,7 +46,7 @@ if __name__ == "__main__":
     parser_optimize.add_argument("--tabu_factor", type=int, default=10)
     parser_optimize.add_argument("--duplicate_strategy", type=str, default='ignore', choices=DUPLICATE_STRATEGIES)
     instance_selector = parser_optimize.add_mutually_exclusive_group()
-    instance_selector.add_argument("--instances", type=int, nargs='+', choices=range(10))
+    instance_selector.add_argument("--instances", type=int, nargs='+', choices=range(10), help="Pour tester des instances spécifiques (attention : réduire le nombre d'instances ne réduit pas le temps d'exécution tant que n_jobs > n_instances)")
     instance_selector.add_argument("--n_instances", type=int, default=10, choices=range(1, 11))
     seed_selector = parser_optimize.add_mutually_exclusive_group()
     seed_selector.add_argument("--seeds", type=int, nargs='+')
