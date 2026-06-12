@@ -7,7 +7,7 @@ K_COLORS = {1: 'blue', 2: 'orange', 4: 'green', 8: 'red'}
 _RESULTS_DIR = "results/plots"
 
 
-def save_plot(base_name, *tags, subdir=None):
+def save_plot(base_name, *tags, subdir=None, overwrite=False):
     plot_dir = Path(_RESULTS_DIR) / subdir if subdir else Path(_RESULTS_DIR)
     plot_dir.mkdir(parents=True, exist_ok=True)
 
@@ -17,21 +17,22 @@ def save_plot(base_name, *tags, subdir=None):
             filename += f"_{tag}"
 
     path = plot_dir / f"{filename}.png"
-    counter = 1
-    while path.exists():
-        path = plot_dir / f"{filename}_{counter}.png"
-        counter += 1
+    if not overwrite:
+        counter = 1
+        while path.exists():
+            path = plot_dir / f"{filename}_{counter}.png"
+            counter += 1
 
     plt.savefig(path)
     print(f"Graphique sauvegardé : {path}")
 
 
 @contextmanager
-def figure(filename, *tags, subdir=None):
+def figure(filename, *tags, subdir=None, overwrite=False):
     try:
         yield
     finally:
-        save_plot(filename, *tags, subdir=subdir)
+        save_plot(filename, *tags, subdir=subdir, overwrite=overwrite)
         plt.close()
 
 

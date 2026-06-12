@@ -31,12 +31,18 @@ class EvaluateCommand(Command):
         print(f"Lancement de l'évaluation sur {len(files)} runs...")
 
 
+        # le samplet en whitebox est coûteux (recherche locale sur le vrai paysage). Plusieurs runs
+        # sur la même instance (N, K, D, num) ne diffèrent que par la seed d'optimisation et non par
+        # le paysage, on recalcule l'ensemble de test une seule fois par instance.
+        test_solutions_cache = {}
+
         final_scatter_by_K = defaultdict(list)
         covariate_data_by_K = defaultdict(lambda: defaultdict(list))
         covariate_scatter_by_K = defaultdict(lambda: defaultdict(lambda: {'real': [], 'pred': []}))
         n_runs_by_K = defaultdict(int)
         
         plot_subdir = None
+        plot_tag = None
         plot_N = None
 
         for file in files:
@@ -54,6 +60,7 @@ class EvaluateCommand(Command):
                     plot_subdir += f"/{meta['algo']}"
                     if tabu_factor is not None and 'tabu' in meta['algo']:
                         plot_subdir += f"/{tabu_factor}"
+                    plot_tag = plot_subdir.replace('/', '_')
                 if plot_N is None:
                     plot_N = N
 
@@ -65,7 +72,10 @@ class EvaluateCommand(Command):
                 fit_fn = get_black_box_fitness_fn(landscape)
 
                 # Fidélité sur des points qui ne correspondent pas forcément aux zones explorée
-                test_solutions = self.sampler.generate_samples(N, self.samples, seed=run_seed, landscape=landscape)
+                instance_key = (N, K, D, num)
+                if instance_key not in test_solutions_cache:
+                    test_solutions_cache[instance_key] = self.sampler.generate_samples(N, self.samples, seed=num, landscape=landscape)
+                test_solutions = test_solutions_cache[instance_key]
                 real_fitness_global = fit_fn(test_solutions)
                 pred_fitness_global = model.predict(transform(masks, test_solutions))
 
@@ -91,11 +101,11 @@ class EvaluateCommand(Command):
                 print(f"Erreur lors de l'évaluation de {file.name} : {e}")
 
         print("Génération du graphique de fidélité globale...")
-        plot_aggregated_fidelity(final_scatter_by_K, subdir=plot_subdir)
+        plot_aggregated_fidelity(final_scatter_by_K, subdir=plot_subdir, tag=plot_tag)
 
         if any(v for v in covariate_data_by_K.values()):
             print("Génération des graphiques Covariate Shift...")
-            plot_covariate_shift(covariate_data_by_K, subdir=plot_subdir) 
-            plot_covariate_scatter(covariate_scatter_by_K, plot_N, n_runs_by_K, subdir=plot_subdir)
+            plot_covariate_shift(covariate_data_by_K, subdir=plot_subdir, tag=plot_tag)
+            plot_covariate_scatter(covariate_scatter_by_K, plot_N, n_runs_by_K, subdir=plot_subdir, tag=plot_tag)
         else:
             print("Aucune best_sol trouvée dans ces fichiers. Le graphique de Covariate Shift ne peut pas être généré.")

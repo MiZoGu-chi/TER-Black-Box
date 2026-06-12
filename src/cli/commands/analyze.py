@@ -73,9 +73,11 @@ class AnalyzeCommand(Command):
             plot_subdir += f"/{plot_algo}"
             if plot_tabu_factor is not None and 'tabu' in plot_algo:
                 plot_subdir += f"/{plot_tabu_factor}"
+            plot_tag = plot_subdir.replace('/', '_')
         else:
             plot_subdir = None
-        self._report_results(all_matrices_by_K, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, mean_local_optima_by_K, plot_subdir, plot_surrogate, plot_algo)
+            plot_tag = None
+        self._report_results(all_matrices_by_K, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, mean_local_optima_by_K, plot_subdir, plot_tag, plot_surrogate, plot_algo)
 
 
     def _get_mae(self, fidelity_history):
@@ -83,7 +85,7 @@ class AnalyzeCommand(Command):
         reals = [p[1] for p in fidelity_history]
         return mean_absolute_error(reals, preds)
 
-    def _report_results(self, all_matrices_by_K, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, mean_local_optima_by_K, subdir=None, surrogate=None, algo=None):
+    def _report_results(self, all_matrices_by_K, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, mean_local_optima_by_K, subdir=None, tag=None, surrogate=None, algo=None):
 
         for K, scores in sorted(max_fitness_by_K.items()):
             mean_score = np.mean(scores)
@@ -101,9 +103,9 @@ class AnalyzeCommand(Command):
         if not any(mean_local_optima_by_K.values()):
             mean_local_optima_by_K = None
 
-        plot_aggregated_convergence(fitness_trajectories_by_K, mean_local_optima_by_K, subdir=subdir)
-        plot_aggregated_fidelity_with_time(fidelity_samples_by_K, subdir=subdir)
-        plot_confusion_metrics_distribution(all_matrices_by_K, N, surrogate=surrogate, algo=algo, subdir=subdir)
+        plot_aggregated_convergence(fitness_trajectories_by_K, mean_local_optima_by_K, subdir=subdir, tag=tag)
+        plot_aggregated_fidelity_with_time(fidelity_samples_by_K, subdir=subdir, tag=tag)
+        plot_confusion_metrics_distribution(all_matrices_by_K, N, surrogate=surrogate, algo=algo, subdir=subdir, tag=tag)
 
 ##########
 

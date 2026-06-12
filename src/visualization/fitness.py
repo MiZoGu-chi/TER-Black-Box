@@ -9,10 +9,10 @@ from .utils import figure, K_COLORS
 
 
 
-def plot_aggregated_convergence(fitness_trajectories_by_K, mean_local_optima_by_K=None, subdir=None):
+def plot_aggregated_convergence(fitness_trajectories_by_K, mean_local_optima_by_K=None, subdir=None, tag=None):
     if not fitness_trajectories_by_K:
         return
-    with figure("optimization_convergence", "trajectories", subdir=subdir):
+    with figure("optimization_convergence", "trajectories", tag, subdir=subdir):
         plt.figure(figsize=(10, 6))
         for K, trajectories in fitness_trajectories_by_K.items():
             color = K_COLORS.get(K, 'black')
@@ -33,24 +33,18 @@ def plot_aggregated_convergence(fitness_trajectories_by_K, mean_local_optima_by_
                 plt.axhline(y=np.mean(mean_local_optima_by_K[K]),
                             color=color, linestyle='--', linewidth=1.5, label=f"Moy. optima locaux (K={K})")
 
-        plt.title("Convergence agrégée par K", fontsize=14)
         plt.xlabel("Nombre d'évaluations", fontsize=12)
         plt.ylabel("Fitness", fontsize=12)
         plt.grid(True, linestyle='--', alpha=0.6)
         plt.legend()
 
-def plot_covariate_scatter(covariate_scatter_by_K, N, n_runs_by_K, subdir=None):
-    """
-    Trace un nuage de points (Fitness Réelle vs Prédite) 
-    où les points sont colorés selon leur distance de Hamming à l'optimum.
-    """
+def plot_covariate_scatter(covariate_scatter_by_K, N, n_runs_by_K, subdir=None, tag=None):
     for K, dist_data in covariate_scatter_by_K.items():
-        with figure(f"covariate_scatter_K{K}", subdir=subdir):
+        with figure(f"covariate_scatter_K{K}", tag, subdir=subdir):
             fig, ax = plt.subplots(figsize=(9, 7))
 
             distances = sorted(dist_data.keys())
             
-            # 1. Regroupement des données pour la colorbar discrète
             all_reals = []
             all_preds = []
             all_dists = []
@@ -66,28 +60,20 @@ def plot_covariate_scatter(covariate_scatter_by_K, N, n_runs_by_K, subdir=None):
                     all_preds.extend(preds)
                     all_dists.extend([dist] * len(reals))
                     
-                    # Mise à jour des bornes pour la diagonale
                     min_val = min(min_val, min(reals), min(preds))
                     max_val = max(max_val, max(reals), max(preds))
 
-            # 2. Création de la colormap avec exactement le nombre de paliers de tes distances
             cmap_discrete = cm.get_cmap('plasma', len(distances))
 
-            # 3. Tracé des points en une seule passe
             scatter = ax.scatter(all_reals, all_preds, c=all_dists, 
                                  cmap=cmap_discrete, alpha=0.6, s=15)
 
             if min_val != float('inf'):
                 ax.plot([min_val, max_val], [min_val, max_val], 'k--', linewidth=2)
 
-            # 4. Colorbar avec les étiquettes fixées sur tes valeurs exactes
             cbar = fig.colorbar(scatter, ax=ax, ticks=distances)
             cbar.set_label("Distance de Hamming")
 
-            # --- TES TITRES ET LABELS EXACTS ---
-            n_runs = n_runs_by_K.get(K, 0)
-            ax.set_title(f"K={K}  N={N}  {n_runs} runs", fontsize=12)
-            fig.suptitle("Précision du surrogate selon l'éloignement à l'optimum", fontsize=14)
             ax.set_xlabel("Fitness réelle", fontsize=12)
             ax.set_ylabel("Fitness prédite", fontsize=12)
             ax.grid(True, linestyle='--', alpha=0.5)

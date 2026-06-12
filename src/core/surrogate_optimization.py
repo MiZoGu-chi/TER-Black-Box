@@ -6,6 +6,9 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
 
     RETRAIN_EVERY = 1 # à tester pour gain de performance, évaluer l'impact sur la qualité du modéle
 
+    # ajouter une fenetre sur les données d'entrainement (on remplace la liste par une queue)
+    # + facteur d'exploration tabou dynamique ?
+
     fitness_history = []
     surrogate_fidelity_history = [] # utilise pour la courbe de fitness prédite vs réel
     

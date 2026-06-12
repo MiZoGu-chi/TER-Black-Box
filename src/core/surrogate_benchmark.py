@@ -15,7 +15,7 @@ def run_model_comparison(args, landscape, masks, models_dict):
 
     res = {model_name: [] for model_name in args.models}
     
-    START_SIZE = 50 
+    START_SIZE = 50
     STEP_SIZE = 1
 
     for t in range(START_SIZE, args.NB_ENTRAINEMENT, STEP_SIZE):
@@ -42,5 +42,5 @@ def run_model_comparison(args, landscape, masks, models_dict):
         } for m in args.models
     }
 
-    plot_compare_models(res_display, args.D, f"nk_{args.N}_{args.K}_{args.num}", args.loss_function) 
+    plot_compare_models(res_display, args.N, args.K, args.num, args.D, args.loss_function, args.seed, args.models)
     plt.show()

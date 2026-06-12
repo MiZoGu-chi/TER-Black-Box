@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 from .utils import figure, K_COLORS
 
 
-def plot_aggregated_fidelity(final_scatter_by_K, subdir=None):
-    with figure("model_fidelity", subdir=subdir):
+def plot_aggregated_fidelity(final_scatter_by_K, subdir=None, tag=None):
+    with figure("model_fidelity", tag, subdir=subdir):
         plt.figure(figsize=(8, 8))
         all_preds, all_reals = [], []
 
@@ -21,18 +21,17 @@ def plot_aggregated_fidelity(final_scatter_by_K, subdir=None):
             max_val = max(max(all_reals), max(all_preds))
             plt.plot([min_val, max_val], [min_val, max_val], 'b--')
 
-        plt.title("Précision globale du modèle surrogate par K", fontsize=14)
         plt.xlabel("Fitness réelle", fontsize=12)
         plt.ylabel("Fitness prédite", fontsize=12)
         plt.legend()
         plt.grid(True, alpha=0.3)
 
 
-def plot_aggregated_fidelity_with_time(fidelity_samples_by_K, subdir=None):
+def plot_aggregated_fidelity_with_time(fidelity_samples_by_K, subdir=None, tag=None):
     sorted_K = [k for k in sorted(fidelity_samples_by_K.keys()) if len(fidelity_samples_by_K[k]) > 0]
     if not sorted_K:
         return
-    with figure("model_training_fidelity", subdir=subdir):
+    with figure("model_training_fidelity", tag, subdir=subdir):
         fig, axes = plt.subplots(1, len(sorted_K), figsize=(7 * len(sorted_K), 6))
         if len(sorted_K) == 1:
             axes = [axes]
@@ -52,13 +51,12 @@ def plot_aggregated_fidelity_with_time(fidelity_samples_by_K, subdir=None):
             ax.set_ylabel("Fitness prédite", fontsize=11)
             ax.grid(True, alpha=0.3)
 
-        fig.suptitle("Évolution de la précision du surrogate pendant l'optimisation", fontsize=14)
         plt.tight_layout()
 
 
-def plot_covariate_shift(covariate_data_by_K, subdir=None):
+def plot_covariate_shift(covariate_data_by_K, subdir=None, tag=None):
     sorted_K = sorted(covariate_data_by_K.keys())
-    with figure("covariate_shift", subdir=subdir):
+    with figure("covariate_shift", tag, subdir=subdir):
         fig, axes = plt.subplots(1, len(sorted_K), figsize=(7 * len(sorted_K), 5), squeeze=False)
 
         for ax, K in zip(axes[0], sorted_K):

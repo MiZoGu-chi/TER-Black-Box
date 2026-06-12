@@ -147,6 +147,8 @@ def fi_baseline(sol, fit_fn):
 def bi_baseline(sol, fit_fn):
     return local_search(sol, fit_fn, best_improvement)
 
+
+# Design à revoir complétement
 ALGORITHMS = {
     'fi': lambda sol, mod, msk: local_search(sol, get_surrogate_fitness_fn(mod, msk), first_improvement),
     'bi': lambda sol, mod, msk: local_search(sol, get_surrogate_fitness_fn(mod, msk), best_improvement),
@@ -157,13 +159,10 @@ ALGORITHMS = {
         np.asarray(sol, dtype=np.int32),
         np.asarray(mod.coef_, dtype=np.float64)
     ),
-    'cpp_tabu': lambda sol, mod, msk: SurrogateSearcher(
-        [np.where(m)[0].tolist() for m in msk], len(sol)
-    ).tabu_search(np.asarray(sol, dtype=np.int32), np.asarray(mod.coef_, dtype=np.float64),
-                  max_iter=len(sol) * 100, seed=np.random.randint(0, 2**31))
+    'cpp_tabu': None,
 }
 
-def get_algorithm(name, tabu_factor=100):
+def get_algorithm(name, tabu_factor):
     if name == 'cpp_tabu':
         return lambda sol, mod, msk: SurrogateSearcher(
             [np.where(m)[0].tolist() for m in msk], len(sol)

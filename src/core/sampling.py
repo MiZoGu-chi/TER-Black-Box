@@ -62,7 +62,7 @@ class StratifiedSampler(EvaluationSampler):
         return candidate_pool[sampled_indices]
 
 
-class WhiteBoxStratifiedSampler(EvaluationSampler):
+class LocalSearchStratifiedSampler(EvaluationSampler):
     def generate_samples(self, N, n_samples, seed, landscape=None):
         self._set_seed(seed)
 
@@ -86,8 +86,75 @@ class WhiteBoxStratifiedSampler(EvaluationSampler):
 
         return np.vstack([low_fitness_set, medium_fitness_set, high_fitness_set])
 
+
+class WhiteBoxStratifiedSampler(EvaluationSampler):
+    # Exploite directement les tables de contribution NK : calcul du delta par flip en O(K)
+    # au lieu de réévaluer toute la solution en O(N*K).
+
+    def _comp_contribution(self, link, solution, K, D):
+        locus_index = sum(D**(K - i) * solution[link[i]] for i in range(K + 1))
+        return link[-1][int(locus_index)]
+
+    def _local_search(self, landscape, solution, var_to_comps, maximize):
+        N, K, D = landscape.N, landscape.K, landscape.D
+        links = landscape.links
+
+        contribs = np.array([self._comp_contribution(link, solution, K, D) for link in links])
+
+        def compute_delta(i):
+            solution[i] ^= 1
+            d = sum(self._comp_contribution(links[c], solution, K, D) - contribs[c] for c in var_to_comps[i]) / N
+            solution[i] ^= 1
+            return d
+
+        deltas = np.array([compute_delta(i) for i in range(N)])
+
+        while True:
+            best_idx = int(np.argmax(deltas) if maximize else np.argmin(deltas))
+            best_delta = deltas[best_idx]
+
+            if (maximize and best_delta <= 0) or (not maximize and best_delta >= 0):
+                break
+
+            solution[best_idx] ^= 1
+
+            for c in var_to_comps[best_idx]:
+                contribs[c] = self._comp_contribution(links[c], solution, K, D)
+
+            affected_vars = {v for c in var_to_comps[best_idx] for v in links[c][:-1]}
+            for v in affected_vars:
+                deltas[v] = compute_delta(v)
+
+        return solution
+
+    def generate_samples(self, N, n_samples, seed, landscape=None):
+        self._set_seed(seed)
+
+        n_per_stratum = n_samples // 3
+
+        var_to_comps = [[] for _ in range(N)]
+        for c, link in enumerate(landscape.links):
+            for v in link[:-1]:
+                var_to_comps[v].append(c)
+
+        medium_fitness_set = np.random.randint(2, size=(n_per_stratum, N))
+
+        high_fitness_set = np.array([
+            self._local_search(landscape, np.random.randint(2, size=N), var_to_comps, maximize=True)
+            for _ in range(n_per_stratum)
+        ])
+
+        low_fitness_set = np.array([
+            self._local_search(landscape, np.random.randint(2, size=N), var_to_comps, maximize=False)
+            for _ in range(n_per_stratum)
+        ])
+
+        return np.vstack([low_fitness_set, medium_fitness_set, high_fitness_set])
+
+
 SAMPLERS = {
     'random': RandomSampler,
     'stratified': StratifiedSampler,
+    'local_search': LocalSearchStratifiedSampler,
     'whitebox': WhiteBoxStratifiedSampler,
 }

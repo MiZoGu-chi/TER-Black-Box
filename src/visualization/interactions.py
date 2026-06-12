@@ -6,14 +6,14 @@ from matplotlib.lines import Line2D
 from .utils import figure
 
 
-def plot_confusion_metrics_distribution(all_matrices_by_K, N, surrogate=None, algo=None, subdir=None):
+def plot_confusion_metrics_distribution(all_matrices_by_K, N, surrogate=None, algo=None, subdir=None, tag=None):
     from src.core.evaluation import compute_confusion_metrics
 
     sorted_K = sorted(all_matrices_by_K.keys())
     if not sorted_K:
         return
 
-    with figure("confusion_distribution", subdir=subdir):
+    with figure("confusion_distribution", tag, subdir=subdir):
         fig, axes = plt.subplots(1, len(sorted_K), figsize=(6 * len(sorted_K), 5), squeeze=False)
 
         for ax, K in zip(axes[0], sorted_K):
@@ -56,8 +56,7 @@ def plot_confusion_metrics_distribution(all_matrices_by_K, N, surrogate=None, al
             ax.set_xticks(x_tick_pos)
             ax.set_xticklabels(x_tick_labels)
             ax.set_ylabel("Nombre d'interactions", fontsize=11)
-            info = "  ".join(filter(None, [surrogate, algo]))
-            ax.set_title(f"K={K}  N={N}  {info}  {n_runs} runs", fontsize=12)
+            ax.set_title(f"K={K}", fontsize=12)
             ax.grid(True, alpha=0.3, axis='y')
 
             legend_elements = [
@@ -68,9 +67,4 @@ def plot_confusion_metrics_distribution(all_matrices_by_K, N, surrogate=None, al
             ]
             ax.legend(handles=legend_elements, fontsize=9)
 
-        fig.suptitle(
-            "Comparaison des interactions détectées par le surrogate\n"
-            "avec les interactions réelles du paysage NK",
-            fontsize=13
-        )
         plt.tight_layout()

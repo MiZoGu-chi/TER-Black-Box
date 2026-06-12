@@ -22,7 +22,7 @@ if __name__ == "__main__":
     
     parser.add_argument("--num", type=int, default=0) # à enlever
     parser.add_argument("--D", type=int, default=2)
-    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--seed", type=int, default=0)
     
     subparsers = parser.add_subparsers(dest="mode", required=True)
 
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     parser_evaluate = subparsers.add_parser('evaluate')
     parser_evaluate.add_argument("path", type=str)
     parser_evaluate.add_argument("--samples", type=int, default=1000)
-    parser_evaluate.add_argument("--sampler", type=str, default='whitebox', choices=['random', 'stratified', 'whitebox'])
+    parser_evaluate.add_argument("--sampler", type=str, default='whitebox', choices=['random', 'stratified', 'whitebox', 'local_search'])
 
     args = parser.parse_args()
 
