@@ -38,12 +38,15 @@ class OptimizeCommand(Command):
         self.initial_pop_size = args.initial_pop_size
         self.start_fn = START_STRATEGIES[args.start]
         self.tabu_factor = args.tabu_factor
-        self.search_fn = get_algorithm(args.algo, tabu_factor=args.tabu_factor)
+        self.drils_factor = args.drils_factor
+        self.search_fn = get_algorithm(args.algo, tabu_factor=args.tabu_factor,
+                                        perturbation_strength=args.perturbation_strength,
+                                        drils_factor=args.drils_factor)
         self.duplicate_strategy = args.duplicate_strategy
         self.n_jobs = int(os.environ.get('SLURM_CPUS_PER_TASK', multiprocessing.cpu_count()))
 
     def _output_dir(self, N, K, timestamp):
-        path = Path("results/opti_output") / str(N) / str(K) / self.surrogate_name
+        path = Path("results/opti_output") / str(N) / str(self.configs_D) / str(K) / self.surrogate_name
 
         if 'alpha' in self.model.get_params():
             path = path / f"{self.model.alpha:g}"
@@ -51,6 +54,8 @@ class OptimizeCommand(Command):
         path = path / self.algo
         if 'tabu' in self.algo:
             path = path / str(self.tabu_factor)
+        elif 'drils' in self.algo:
+            path = path / str(self.drils_factor)
 
         return path / f"run_{timestamp}"
 
@@ -70,8 +75,10 @@ class OptimizeCommand(Command):
         output_dir.mkdir(parents=True, exist_ok=True)
         filename = output_dir / f"opti_{N}_{K}_{num}_{seed}_{self.algo}_{self.surrogate_name}.txt"
 
+        algo_factor = self.drils_factor if 'drils' in self.algo else self.tabu_factor
+
         with open(filename, "w") as f:
-            f.write(f"{N} {K} {self.configs_D} {num} {seed} {self.algo} {self.surrogate_name} {mean_local_optima} {self.model.alpha} {self.tabu_factor} {self.duplicate_strategy}\n")
+            f.write(f"{N} {K} {self.configs_D} {num} {seed} {self.algo} {self.surrogate_name} {mean_local_optima} {self.model.alpha} {algo_factor} {self.duplicate_strategy}\n")
 
             f.write("#\n")
             for sol, budg in history:

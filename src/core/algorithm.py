@@ -160,14 +160,21 @@ ALGORITHMS = {
         np.asarray(mod.coef_, dtype=np.float64)
     ),
     'cpp_tabu': None,
+    'cpp_drils': None,
 }
 
-def get_algorithm(name, tabu_factor):
+def get_algorithm(name, tabu_factor, perturbation_strength=None, drils_factor=None):
     if name == 'cpp_tabu':
         return lambda sol, mod, msk: SurrogateSearcher(
             [np.where(m)[0].tolist() for m in msk], len(sol)
         ).tabu_search(np.asarray(sol, dtype=np.int32), np.asarray(mod.coef_, dtype=np.float64),
                       max_iter=len(sol) * tabu_factor, seed=np.random.randint(0, 2**31))
+    if name == 'cpp_drils':
+        return lambda sol, mod, msk: SurrogateSearcher(
+            [np.where(m)[0].tolist() for m in msk], len(sol)
+        ).drils_search(np.asarray(sol, dtype=np.int32), np.asarray(mod.coef_, dtype=np.float64),
+                        alpha=perturbation_strength, max_iter=len(sol) * drils_factor,
+                        seed=np.random.randint(0, 2**31))
     return ALGORITHMS[name]
 
 BASELINE_ALGORITHMS = { # Uniquement pour pouvoir utiliser fn.__name__ ce qu'on ne peut pas faire avec juste une lambda, potentiellement à revoir 

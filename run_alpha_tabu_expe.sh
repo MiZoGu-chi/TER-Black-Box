@@ -1,10 +1,10 @@
 #!/bin/bash
 
-ALPHAS=(0.00001)
+ALPHAS=(0.0001 0.00001)
 TABU_FACTORS=(2)
 N=(64)
 K=(1 2 4 8)
-D=(2)
+D=(3)
 
 for alpha in "${ALPHAS[@]}"; do
     for factor in "${TABU_FACTORS[@]}"; do

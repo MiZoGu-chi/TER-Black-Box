@@ -2,6 +2,8 @@
 
 #include <pybind11/stl.h>
 #include <random>
+#include <algorithm>
+#include <numeric>
 
 SurrogateSearcher::SurrogateSearcher(const std::vector<std::vector<int>>& masks, int N)
         : _masks(masks), _N(N), _bit_to_masks(N) {
@@ -98,6 +100,209 @@ py::array_t<int> SurrogateSearcher::hill_climber(py::array_t<int> start_sol, py:
     return result;
 }
 
+std::vector<std::vector<int>> SurrogateSearcher::get_variable_interaction_graph(py::array_t<double> coefs_) {
+    auto coefs = coefs_.unchecked<1>();
+    std::vector<std::vector<int>> graph(_N);
+
+    for (int i = 0; i < _masks.size(); i++) {
+        if (coefs(i) == 0.0) continue; 
+
+        const auto& interaction = _masks[i];
+
+        for (int a = 0; a < interaction.size(); a++) {
+            int var_a = interaction[a];
+
+            for (int b = a + 1; b < interaction.size(); b++) {
+                int var_b = interaction[b];
+
+                graph[var_a].push_back(var_b);
+                graph[var_b].push_back(var_a);
+            }
+        }
+    }
+
+    return graph;
+}
+
+std::vector<std::vector<int>> SurrogateSearcher::find_connected_components(
+    const std::vector<std::vector<int>>& graph,
+    const std::vector<bool>& is_active)
+{
+    std::vector<std::vector<int>> components;
+    std::vector<bool> visited(_N, false);
+
+    for (int start = 0; start < _N; start++) {
+        if (!is_active[start] || visited[start]) continue;
+
+        std::vector<int> component;
+        std::vector<int> stack = {start};
+        visited[start] = true;
+
+        while (!stack.empty()) {
+            int current = stack.back();
+            stack.pop_back();
+            component.push_back(current);
+
+            for (int neighbor : graph[current]) {
+                if (is_active[neighbor] && !visited[neighbor]) {
+                    visited[neighbor] = true;
+                    stack.push_back(neighbor);
+                }
+            }
+        }
+
+        components.push_back(component);
+    }
+
+    return components;
+}
+
+bool SurrogateSearcher::compare_component(
+    const std::vector<int>& component,
+    const std::vector<int>& p1,
+    const std::vector<int>& p2,
+    py::array_t<double> coefs_)
+{
+    auto coefs = coefs_.unchecked<1>();
+
+    std::vector<bool> mask_seen(_masks.size(), false);
+    std::vector<int> relevant_masks;
+
+    for (int var : component) {
+        for (int mask_idx : _bit_to_masks[var]) {
+            if (!mask_seen[mask_idx]) {
+                mask_seen[mask_idx] = true;
+                relevant_masks.push_back(mask_idx);
+            }
+        }
+    }
+
+    double g_p1 = 0.0, g_p2 = 0.0;
+
+    for (int mask_idx : relevant_masks) {
+        double c = coefs(mask_idx);
+        if (c == 0.0) continue;
+
+        int sum_p1 = 0, sum_p2 = 0;
+        for (int b : _masks[mask_idx]) {
+            sum_p1 += p1[b];
+            sum_p2 += p2[b];
+        }
+
+        double phi_p1 = (sum_p1 % 2 == 0) ? 1.0 : -1.0;
+        double phi_p2 = (sum_p2 % 2 == 0) ? 1.0 : -1.0;
+
+        g_p1 += c * phi_p1;
+        g_p2 += c * phi_p2;
+    }
+
+    return g_p1 > g_p2;
+}
+
+std::vector<int> SurrogateSearcher::partition_crossover(
+    const std::vector<int>& p1,
+    const std::vector<int>& p2,
+    py::array_t<double> coefs_)
+{
+    std::vector<bool> is_active(_N);
+    for (int i = 0; i < _N; i++)
+        is_active[i] = (p1[i] != p2[i]);
+
+    auto graph = get_variable_interaction_graph(coefs_);
+    auto components = find_connected_components(graph, is_active);
+
+    std::vector<int> child = p1;
+
+    for (const auto& component : components) {
+        bool use_p1 = compare_component(component, p1, p2, coefs_);
+        if (!use_p1) {
+            for (int var : component)
+                child[var] = p2[var];
+        }
+    }
+
+    return child;
+}
+
+std::vector<int> SurrogateSearcher::perturb(const std::vector<int>& solution, double alpha, unsigned int seed) {
+    std::mt19937 rng(seed);
+    std::vector<int> result = solution;
+
+    // !! pour un N petit et/ou un alpha faible, (int)(alpha * _N) peut tronquer à 0 !!
+    int n_flips = (int)(alpha * _N);
+
+    std::vector<int> indices(_N);
+    std::iota(indices.begin(), indices.end(), 0);   // remplit avec 0, 1, ..., N-1
+
+    std::shuffle(indices.begin(), indices.end(), rng);
+
+    for (int i = 0; i < n_flips; i++) {
+        result[indices[i]] = 1 - result[indices[i]];
+    }
+
+    return result;
+}
+
+std::vector<int> SurrogateSearcher::to_vector(const py::array_t<int>& a) {
+    auto acc = a.unchecked<1>();
+    std::vector<int> v(acc.shape(0));
+    for (int i = 0; i < (int)v.size(); i++) v[i] = acc(i);
+    return v;
+}
+
+py::array_t<int> SurrogateSearcher::to_array(const std::vector<int>& v) {
+    py::array_t<int> result(v.size());
+    auto r = result.mutable_unchecked<1>();
+    for (size_t i = 0; i < v.size(); i++) r(i) = v[i];
+    return result;
+}
+
+double SurrogateSearcher::evaluate_fitness(const std::vector<int>& solution, const py::array_t<double>& coefs_) {
+    auto coefs = coefs_.unchecked<1>();
+    double fit = 0.0;
+
+    for (int i = 0; i < (int)_masks.size(); i++) {
+        if (coefs(i) == 0.0) continue;
+
+        int s = 0;
+        for (int b : _masks[i]) s += solution[b];
+
+        fit += coefs(i) * ((s % 2 == 0) ? 1.0 : -1.0);
+    }
+
+    return fit;
+}
+
+py::array_t<int> SurrogateSearcher::drils_search(py::array_t<int> start_sol, py::array_t<double> coefs_, double alpha, int max_iter, unsigned int seed) {
+    std::mt19937 rng(seed);
+
+    std::vector<int> p1 = to_vector(hill_climber(start_sol, coefs_));
+    std::vector<int> best = p1;
+    double best_fit = evaluate_fitness(p1, coefs_);
+
+    for (int iter = 0; iter < max_iter; iter++) {
+        std::vector<int> x  = perturb(p1, alpha, rng());
+        std::vector<int> p2 = to_vector(hill_climber(to_array(x), coefs_));
+
+        std::vector<int> p = partition_crossover(p1, p2, coefs_);
+
+        if (p == p1 || p == p2) {
+            p1 = p2;
+        } else {
+            p1 = to_vector(hill_climber(to_array(p), coefs_));
+        }
+
+        double fit = evaluate_fitness(p1, coefs_);
+        
+        if (fit > best_fit) {
+            best_fit = fit;
+            best = p1;
+        }
+    }
+
+    return to_array(best);
+}
+
 py::array_t<int> SurrogateSearcher::tabu_search(py::array_t<int> start_sol, py::array_t<double> coefs_, int max_iter, unsigned int seed) {
     int n_coefs = (int)_masks.size();
 
@@ -161,5 +366,18 @@ PYBIND11_MODULE(surrogate_search, m) {
              py::arg("start_sol"), py::arg("coefs"))
         .def("tabu_search",  &SurrogateSearcher::tabu_search,
              py::arg("start_sol"), py::arg("coefs"),
-             py::arg("max_iter"),  py::arg("seed") = 42);
+             py::arg("max_iter"),  py::arg("seed") = 42)
+        .def("get_variable_interaction_graph", &SurrogateSearcher::get_variable_interaction_graph,
+             py::arg("coefs"))
+        .def("find_connected_components", &SurrogateSearcher::find_connected_components,
+             py::arg("graph"), py::arg("is_active"))
+        .def("compare_component", &SurrogateSearcher::compare_component,
+             py::arg("component"), py::arg("p1"), py::arg("p2"), py::arg("coefs"))
+        .def("partition_crossover", &SurrogateSearcher::partition_crossover,
+             py::arg("p1"), py::arg("p2"), py::arg("coefs"))
+        .def("perturb", &SurrogateSearcher::perturb,
+             py::arg("solution"), py::arg("alpha"), py::arg("seed") = 42)
+        .def("drils_search", &SurrogateSearcher::drils_search,
+             py::arg("start_sol"), py::arg("coefs"), py::arg("alpha"),
+             py::arg("max_iter"), py::arg("seed") = 42);
 }
