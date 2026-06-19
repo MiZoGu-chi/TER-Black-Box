@@ -16,7 +16,7 @@ MODELS = {
         'name': 'Lasso with Lars using BIC',
         'color': 'tab:orange'
     },
-    'cg': {
+    'cg_ridge': {
         'model': Ridge(alpha=0.001, fit_intercept=False, solver='sparse_cg'),
         'name': 'CG (Ridge)',
         'color': 'tab:red'
@@ -28,4 +28,4 @@ MODELS = {
     }
 }
 
-# en faire une @dataclasses ?
+# en faire une @dataclasses ?j

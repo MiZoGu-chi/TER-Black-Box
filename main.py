@@ -6,7 +6,7 @@ import numpy as np
 from sklearnex import patch_sklearn
 from sklearn.exceptions import ConvergenceWarning
 
-from src.cli.commands import OptimizeCommand, CompareCommand, AnalyzeCommand, EvaluateCommand
+from src.cli.commands import OptimizeCommand, CompareCommand, AnalyzeCommand, EvaluateCommand, RankCommand
 from src.core.models import MODELS
 from src.core.algorithm import ALGORITHMS, START_STRATEGIES
 from src.core.surrogate_optimization import DUPLICATE_STRATEGIES
@@ -55,6 +55,9 @@ if __name__ == "__main__":
     parser_analyze = subparsers.add_parser('analyze')
     parser_analyze.add_argument("path", type=str, nargs='+')
 
+    parser_rank = subparsers.add_parser('rank')
+    parser_rank.add_argument("path", type=str, nargs='+')
+
     parser_evaluate = subparsers.add_parser('evaluate')
     parser_evaluate.add_argument("path", type=str)
     parser_evaluate.add_argument("--samples", type=int, default=1000)
@@ -70,7 +73,8 @@ if __name__ == "__main__":
         'compare': CompareCommand,
         'optimize': OptimizeCommand,
         'analyze': AnalyzeCommand,
-        'evaluate' : EvaluateCommand
+        'evaluate': EvaluateCommand,
+        'rank': RankCommand,
     }
 
     if args.mode in commands:

@@ -88,38 +88,37 @@ class LocalSearchStratifiedSampler(EvaluationSampler):
 
 
 class WhiteBoxStratifiedSampler(EvaluationSampler):
-    # Exploite directement les tables de contribution NK : calcul du delta par flip en O(K)
-    # au lieu de réévaluer toute la solution en O(N*K).
 
-    def _comp_contribution(self, link, solution, K, D):
+    # convertit les valeurs des K+1 bits du composant en index dans la table de lookup
+    def comp_contribution(self, link, solution, K, D):
         locus_index = sum(D**(K - i) * solution[link[i]] for i in range(K + 1))
         return link[-1][int(locus_index)]
 
-    def _local_search(self, landscape, solution, var_to_comps, maximize):
+    # hill climber best improvement sur le vrai paysage NK 
+    def hill_climber(self, landscape, solution, var_to_comps, contribution_fn):
         N, K, D = landscape.N, landscape.K, landscape.D
         links = landscape.links
 
-        contribs = np.array([self._comp_contribution(link, solution, K, D) for link in links])
+        contribs = np.array([contribution_fn(link, solution, K, D) for link in links])
 
+        # gain de fitness si on flippe le bit i (on flippe et on reflippe pour ne pas modifier la solution)
         def compute_delta(i):
             solution[i] ^= 1
-            d = sum(self._comp_contribution(links[c], solution, K, D) - contribs[c] for c in var_to_comps[i]) / N
+            d = sum(contribution_fn(links[c], solution, K, D) - contribs[c] for c in var_to_comps[i]) / N
             solution[i] ^= 1
             return d
 
         deltas = np.array([compute_delta(i) for i in range(N)])
 
         while True:
-            best_idx = int(np.argmax(deltas) if maximize else np.argmin(deltas))
-            best_delta = deltas[best_idx]
-
-            if (maximize and best_delta <= 0) or (not maximize and best_delta >= 0):
+            best_idx = int(np.argmax(deltas))
+            if deltas[best_idx] <= 0:
                 break
 
             solution[best_idx] ^= 1
 
             for c in var_to_comps[best_idx]:
-                contribs[c] = self._comp_contribution(links[c], solution, K, D)
+                contribs[c] = contribution_fn(links[c], solution, K, D)
 
             affected_vars = {v for c in var_to_comps[best_idx] for v in links[c][:-1]}
             for v in affected_vars:
@@ -132,6 +131,7 @@ class WhiteBoxStratifiedSampler(EvaluationSampler):
 
         n_per_stratum = n_samples // 3
 
+        # index inverse : pour chaque bit, liste des composantes qui le contiennent
         var_to_comps = [[] for _ in range(N)]
         for c, link in enumerate(landscape.links):
             for v in link[:-1]:
@@ -139,13 +139,15 @@ class WhiteBoxStratifiedSampler(EvaluationSampler):
 
         medium_fitness_set = np.random.randint(2, size=(n_per_stratum, N))
 
+        inverted_contribution = lambda link, sol, K, D: -self.comp_contribution(link, sol, K, D)
+
         high_fitness_set = np.array([
-            self._local_search(landscape, np.random.randint(2, size=N), var_to_comps, maximize=True)
+            self.hill_climber(landscape, np.random.randint(2, size=N), var_to_comps, self.comp_contribution)
             for _ in range(n_per_stratum)
         ])
 
         low_fitness_set = np.array([
-            self._local_search(landscape, np.random.randint(2, size=N), var_to_comps, maximize=False)
+            self.hill_climber(landscape, np.random.randint(2, size=N), var_to_comps, inverted_contribution)
             for _ in range(n_per_stratum)
         ])
 

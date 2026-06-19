@@ -15,7 +15,7 @@ def run_model_comparison(args, landscape, masks, models_dict):
 
     res = {model_name: [] for model_name in args.models}
     
-    START_SIZE = 50
+    START_SIZE = 0
     STEP_SIZE = 1
 
     for t in range(START_SIZE, args.NB_ENTRAINEMENT, STEP_SIZE):

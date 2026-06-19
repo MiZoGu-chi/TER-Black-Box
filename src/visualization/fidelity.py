@@ -21,9 +21,10 @@ def plot_aggregated_fidelity(final_scatter_by_K, subdir=None, tag=None):
             max_val = max(max(all_reals), max(all_preds))
             plt.plot([min_val, max_val], [min_val, max_val], 'b--')
 
+        if len(final_scatter_by_K) == 1:
+            plt.title(f"K={list(final_scatter_by_K.keys())[0]}", fontsize=13)
         plt.xlabel("Fitness réelle", fontsize=12)
         plt.ylabel("Fitness prédite", fontsize=12)
-        plt.legend()
         plt.grid(True, alpha=0.3)
 
 
@@ -43,8 +44,12 @@ def plot_aggregated_fidelity_with_time(fidelity_samples_by_K, subdir=None, tag=N
             n_evals = [s[2] for s in samples]
 
             sc = ax.scatter(reals, preds, c=n_evals, cmap='viridis', s=8, alpha=0.6)
-            min_val, max_val = min(min(reals), min(preds)), max(max(reals), max(preds))
-            ax.plot([min_val, max_val], [min_val, max_val], 'k--', alpha=0.5)
+            real_min, real_max = min(reals), max(reals)
+            ax.plot([real_min, real_max], [real_min, real_max], 'k--', alpha=0.5)
+            # ylim calé sur la plage des fitness réelles (± 10%) : exclut les prédictions
+            # aberrantes de LassoLARS en début de run (ex: 28.6 pour K=4, n_evals=22)
+            margin = (real_max - real_min) * 0.1
+            ax.set_ylim(real_min - margin, real_max + margin)
             fig.colorbar(sc, ax=ax, label="Nombre d'évaluations")
             ax.set_title(f"K={K}", fontsize=13)
             ax.set_xlabel("Fitness réelle", fontsize=11)

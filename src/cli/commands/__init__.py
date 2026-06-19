@@ -2,3 +2,4 @@ from .optimize import OptimizeCommand
 from .compare import CompareCommand
 from .analyze import AnalyzeCommand
 from .evaluate import EvaluateCommand
+from .rank import RankCommand
