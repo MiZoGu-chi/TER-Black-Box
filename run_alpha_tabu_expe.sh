@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ALPHAS=(0.0001 0.00001)
+ALPHAS=(0.00001)
 TABU_FACTORS=(2)
 N=(64)
 K=(1 2 4 8)
