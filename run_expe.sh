@@ -19,4 +19,4 @@ elif [[ "$CLUSTER_NAME" == "stargate" ]]; then
         --mem-per-cpu=10G \
         --nodes=1 \
         slurm/job.sh "$@"
-fije 
+fi
