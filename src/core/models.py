@@ -1,4 +1,4 @@
-from sklearn.linear_model import Lars, LassoLars, LassoLarsIC, Ridge, ElasticNet
+from sklearn.linear_model import Lars, LassoLars, LassoLarsIC, LassoLarsCV, Ridge, ElasticNet
 
 MODELS = {
     'lars': {
@@ -15,6 +15,11 @@ MODELS = {
         'model': LassoLarsIC(criterion='bic', fit_intercept=False, noise_variance=1e-5),
         'name': 'Lasso with Lars using BIC',
         'color': 'tab:orange'
+    },
+    'lasso_lars_cv': {
+        'model': LassoLarsCV(fit_intercept=False),
+        'name': 'Lasso with Lars using CV',
+        'color': 'tab:purple'
     },
     'cg_ridge': {
         'model': Ridge(alpha=0.001, fit_intercept=False, solver='sparse_cg'),

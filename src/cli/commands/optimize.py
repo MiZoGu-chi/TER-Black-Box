@@ -77,7 +77,7 @@ class OptimizeCommand(Command):
 
         algo_factor = self.drils_factor if 'drils' in self.algo else self.tabu_factor
 
-        header_alpha = None if self.surrogate_name == 'lasso_lars_ic' else self.model.alpha
+        header_alpha = self.model.alpha if self.surrogate_name == 'lasso_lars' else None
 
         with open(filename, "w") as f:
             f.write(f"{N} {K} {self.configs_D} {num} {seed} {self.algo} {self.surrogate_name} {mean_local_optima} {header_alpha} {algo_factor} {self.duplicate_strategy}\n")

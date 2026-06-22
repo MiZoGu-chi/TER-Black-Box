@@ -7,7 +7,7 @@ if [[ "$CLUSTER_NAME" == *"nautilus"* ]]; then
     sbatch \
         --qos=short \
         --cpus-per-task=20 \
-        --mem-per-cpu=4G \
+        --mem-per-cpu=8G \
         --nodes=1 \
         slurm/job.sh "$@"
 
@@ -19,4 +19,4 @@ elif [[ "$CLUSTER_NAME" == "stargate" ]]; then
         --mem-per-cpu=10G \
         --nodes=1 \
         slurm/job.sh "$@"
-fi
+fije 
