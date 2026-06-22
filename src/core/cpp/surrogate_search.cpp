@@ -124,10 +124,7 @@ std::vector<std::vector<int>> SurrogateSearcher::get_variable_interaction_graph(
     return graph;
 }
 
-std::vector<std::vector<int>> SurrogateSearcher::find_connected_components(
-    const std::vector<std::vector<int>>& graph,
-    const std::vector<bool>& is_active)
-{
+std::vector<std::vector<int>> SurrogateSearcher::find_connected_components(const std::vector<std::vector<int>>& graph, const std::vector<bool>& is_active) {
     std::vector<std::vector<int>> components;
     std::vector<bool> visited(_N, false);
 
@@ -280,16 +277,18 @@ py::array_t<int> SurrogateSearcher::drils_search(py::array_t<int> start_sol, py:
     std::vector<int> best = p1;
     double best_fit = evaluate_fitness(p1, coefs_);
 
+
+
     for (int iter = 0; iter < max_iter; iter++) {
         std::vector<int> x  = perturb(p1, alpha, rng());
         std::vector<int> p2 = to_vector(hill_climber(to_array(x), coefs_));
 
-        std::vector<int> p = partition_crossover(p1, p2, coefs_);
+        std::vector<int> child = partition_crossover(p1, p2, coefs_);
 
-        if (p == p1 || p == p2) {
+        if (child == p1 || child == p2) {
             p1 = p2;
         } else {
-            p1 = to_vector(hill_climber(to_array(p), coefs_));
+            p1 = to_vector(hill_climber(to_array(child), coefs_));
         }
 
         double fit = evaluate_fitness(p1, coefs_);

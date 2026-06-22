@@ -66,7 +66,7 @@ class OptimizeCommand(Command):
 
         landscape, masks = load_landscape_and_masks(N, K, self.configs_D, num)
 
-        best_fit, best_sol, history, surrogate_model, surrogate_fidelity_history = run_surrogate_optimization(
+        best_fit, best_sol, history, surrogate_model, surrogate_fidelity_history, alpha_history = run_surrogate_optimization(
             self.budget, N, self.initial_pop_size, landscape, masks, self.model, self.search_fn, self.start_fn, self.duplicate_strategy)
 
         coefs = surrogate_model.coef_.tolist()
@@ -77,8 +77,10 @@ class OptimizeCommand(Command):
 
         algo_factor = self.drils_factor if 'drils' in self.algo else self.tabu_factor
 
+        header_alpha = None if self.surrogate_name == 'lasso_lars_ic' else self.model.alpha
+
         with open(filename, "w") as f:
-            f.write(f"{N} {K} {self.configs_D} {num} {seed} {self.algo} {self.surrogate_name} {mean_local_optima} {self.model.alpha} {algo_factor} {self.duplicate_strategy}\n")
+            f.write(f"{N} {K} {self.configs_D} {num} {seed} {self.algo} {self.surrogate_name} {mean_local_optima} {header_alpha} {algo_factor} {self.duplicate_strategy}\n")
 
             f.write("#\n")
             for sol, budg in history:
@@ -93,6 +95,11 @@ class OptimizeCommand(Command):
 
             f.write("#\n")
             f.write(f"{coefs}\n")
+
+            if self.surrogate_name == 'lasso_lars_ic':
+                f.write("#\n")
+                for n_eval, alpha_ in alpha_history:
+                    f.write(f"{n_eval} {alpha_}\n")
 
     def execute(self):
         job_id = os.environ.get('SLURM_JOB_ID', 'local')

@@ -1,6 +1,7 @@
 import numpy as np
 
 from src.core.data_sampler import generate_random_solutions, evaluate_and_transform, transform
+from src.core.models import MODELS
 
 def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, surrogate_model, search_fun, start_fun, duplicate_strategy='ignore'):
 
@@ -11,7 +12,9 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
 
     fitness_history = []
     surrogate_fidelity_history = [] # utilise pour la courbe de fitness prédite vs réel
-    
+    alpha_history = [] # alpha sélectionné par BIC à chaque refit (uniquement pour lasso_lars_ic)
+    is_lasso_lars_ic = isinstance(surrogate_model, type(MODELS['lasso_lars_ic']['model']))
+
     n_evals = initial_pop_size
 
     initial_population = generate_random_solutions(N, initial_pop_size)
@@ -37,6 +40,9 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
 
         if n_evals % RETRAIN_EVERY == 0:
             surrogate_model.fit(np.array(X_list), np.array(Y_list))
+
+            if is_lasso_lars_ic:
+                alpha_history.append((n_evals, surrogate_model.alpha_))
 
         start_sol = start_fun(best_sol, N) # random par défaut, egreedy et best disponible
 
@@ -84,7 +90,7 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
 
     fitness_history.append((best_fit, budget))
 
-    return best_fit, best_sol, fitness_history, surrogate_model, surrogate_fidelity_history
+    return best_fit, best_sol, fitness_history, surrogate_model, surrogate_fidelity_history, alpha_history
 
 DUPLICATE_STRATEGIES = ['ignore', 'random', 'skip']
 
