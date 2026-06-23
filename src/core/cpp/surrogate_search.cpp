@@ -12,6 +12,16 @@ SurrogateSearcher::SurrogateSearcher(const std::vector<std::vector<int>>& masks,
                 _bit_to_masks[b].push_back(i);
 }
 
+py::array_t<int> SurrogateSearcher::local_search(py::array_t<int> start_sol, py::array_t<double> coefs_, LocalSearchStrategy strat, int tabu_max_iter, unsigned int seed) {
+    switch (strat) {
+        case LocalSearchStrategy::HC_FIRST_IMPROVEMENT:
+            return hill_climber(start_sol, coefs_, HillClimberStrategy::FIRST_IMPROVEMENT, seed);
+        case LocalSearchStrategy::HC_BEST_IMPROVEMENT:
+            return hill_climber(start_sol, coefs_, HillClimberStrategy::BEST_IMPROVEMENT, seed);
+        case LocalSearchStrategy::TABU:
+            return tabu_search(start_sol, coefs_, tabu_max_iter, seed);
+    }
+}
 
 void SurrogateSearcher::init_walsh_state(const py::array_t<int>& sol_, const py::array_t<double>& coefs_, std::vector<int>& current, std::vector<int>& best, std::vector<double>& phi, std::vector<double>& delta, double& cur_fit) {
     // On utilise unchecked() au lieu de std::vector pour lire la ram de Python directement sans faire de copie mémoire, plus rapide
@@ -63,7 +73,7 @@ void SurrogateSearcher::apply_incremental_flip(int bit, const py::array_t<double
     }
 }
 
-py::array_t<int> SurrogateSearcher::hill_climber(py::array_t<int> start_sol, py::array_t<double> coefs_) {
+py::array_t<int> SurrogateSearcher::hill_climber(py::array_t<int> start_sol, py::array_t<double> coefs_, HillClimberStrategy strat, unsigned int seed) {
     int n_coefs = (int)_masks.size();
 
     std::vector<int> current(_N), best(_N);
@@ -72,19 +82,41 @@ py::array_t<int> SurrogateSearcher::hill_climber(py::array_t<int> start_sol, py:
 
     init_walsh_state(start_sol, coefs_, current, best, phi, delta, cur_fit);
 
+    std::mt19937 rng(seed);
     bool improved = true;
 
-    while (improved) {
-        improved  = false;
-        int best_bit_to_flip = -1;
-        double best_delta = 0.0;
 
-        // Boucle simple pour trouver le bit qui donne le meilleur gain de fitness
-        for (int b = 0; b < _N; b++) {
-            if (delta[b] >best_delta) {
-                best_delta   = delta[b];
-                best_bit_to_flip = b;
-                improved = true;
+    while (improved) {
+        improved = false;
+        int best_bit_to_flip = -1;
+
+        switch (strat) {
+            case HillClimberStrategy::BEST_IMPROVEMENT: {
+                double best_delta = 0.0;
+
+                // boucle simple pour trouver le bit qui donne la meilleur fitness
+                for (int b = 0; b < _N; b++) {
+                    if (delta[b] > best_delta) {
+                        best_delta = delta[b];
+                        best_bit_to_flip = b;
+                        improved = true;
+                    }
+                }
+                break;
+            }
+            case HillClimberStrategy::FIRST_IMPROVEMENT: {
+                std::vector<int> indices(_N);
+                std::iota(indices.begin(), indices.end(), 0);
+                std::shuffle(indices.begin(), indices.end(), rng);
+
+                for (int b : indices) {
+                    if (delta[b] > 0.0) {
+                        best_bit_to_flip = b;
+                        improved = true;
+                        break;
+                    }
+                }
+                break;
             }
         }
 
@@ -92,6 +124,7 @@ py::array_t<int> SurrogateSearcher::hill_climber(py::array_t<int> start_sol, py:
             apply_incremental_flip(best_bit_to_flip, coefs_, current, phi, delta, cur_fit);
             best = current;
         }
+
     }
 
     py::array_t<int> result(_N);
@@ -100,39 +133,18 @@ py::array_t<int> SurrogateSearcher::hill_climber(py::array_t<int> start_sol, py:
     return result;
 }
 
-std::vector<std::vector<int>> SurrogateSearcher::get_variable_interaction_graph(py::array_t<double> coefs_) {
+std::vector<std::vector<int>> SurrogateSearcher::find_connected_components(const std::vector<bool>& is_active, const py::array_t<double>& coefs_) {
     auto coefs = coefs_.unchecked<1>();
-    std::vector<std::vector<int>> graph(_N);
-
-    for (int i = 0; i < _masks.size(); i++) {
-        if (coefs(i) == 0.0) continue; 
-
-        const auto& interaction = _masks[i];
-
-        for (int a = 0; a < interaction.size(); a++) {
-            int var_a = interaction[a];
-
-            for (int b = a + 1; b < interaction.size(); b++) {
-                int var_b = interaction[b];
-
-                graph[var_a].push_back(var_b);
-                graph[var_b].push_back(var_a);
-            }
-        }
-    }
-
-    return graph;
-}
-
-std::vector<std::vector<int>> SurrogateSearcher::find_connected_components(const std::vector<std::vector<int>>& graph, const std::vector<bool>& is_active) {
     std::vector<std::vector<int>> components;
     std::vector<bool> visited(_N, false);
 
+    // DFS
     for (int start = 0; start < _N; start++) {
         if (!is_active[start] || visited[start]) continue;
 
         std::vector<int> component;
         std::vector<int> stack = {start};
+
         visited[start] = true;
 
         while (!stack.empty()) {
@@ -140,8 +152,16 @@ std::vector<std::vector<int>> SurrogateSearcher::find_connected_components(const
             stack.pop_back();
             component.push_back(current);
 
-            for (int neighbor : graph[current]) {
-                if (is_active[neighbor] && !visited[neighbor]) {
+            // voisins de current = toutes les variables qui partagent
+            // un masque actif avec current
+            for (int mask_idx : _bit_to_masks[current]) {
+                if (coefs(mask_idx) == 0.0) continue;  // masque inactif
+
+                for (int neighbor : _masks[mask_idx]) {
+                    if (neighbor == current) continue;
+                    if (!is_active[neighbor]) continue;  // bit commun -> ignoré
+                    if (visited[neighbor]) continue;
+
                     visited[neighbor] = true;
                     stack.push_back(neighbor);
                 }
@@ -149,7 +169,12 @@ std::vector<std::vector<int>> SurrogateSearcher::find_connected_components(const
         }
 
         components.push_back(component);
-    }
+    } 
+
+    // components = { C_1, C_2, ..., C_q }
+    // C_i = { x_i1, x_i2, ..., x_ij } : i-ème composante connexe,
+    // contient les variables actives connectées entre elles via les masques actifs
+    // partition de { j | is_active[j] } en q composantes connexes indépendantes
 
     return components;
 }
@@ -196,23 +221,21 @@ bool SurrogateSearcher::compare_component(
     return g_p1 > g_p2;
 }
 
-std::vector<int> SurrogateSearcher::partition_crossover(
-    const std::vector<int>& p1,
-    const std::vector<int>& p2,
-    py::array_t<double> coefs_)
-{
+std::vector<int> SurrogateSearcher::partition_crossover(const std::vector<int>& p1, const std::vector<int>& p2, py::array_t<double> coefs_) {
     std::vector<bool> is_active(_N);
+
     for (int i = 0; i < _N; i++)
-        is_active[i] = (p1[i] != p2[i]);
+        is_active[i] = (p1[i] != p2[i]); // on prends uniquement les bits qui différent entre les deux optima locaux
 
-    auto graph = get_variable_interaction_graph(coefs_);
-    auto components = find_connected_components(graph, is_active);
+    auto components = find_connected_components(is_active, coefs_);
 
-    std::vector<int> child = p1;
+    // les bits communs entre p1 et p2 doivent être hérités
+    std::vector<int> child = p1; // ou = p2, équivalent
 
+    // parcours est comparaison de toutes les composantes connexes
     for (const auto& component : components) {
-        bool use_p1 = compare_component(component, p1, p2, coefs_);
-        if (!use_p1) {
+        bool p1_greater = compare_component(component, p1, p2, coefs_);
+        if (!p1_greater) {
             for (int var : component)
                 child[var] = p2[var];
         }
@@ -231,8 +254,9 @@ std::vector<int> SurrogateSearcher::perturb(const std::vector<int>& solution, do
     std::vector<int> indices(_N);
     std::iota(indices.begin(), indices.end(), 0);   // remplit avec 0, 1, ..., N-1
 
-    std::shuffle(indices.begin(), indices.end(), rng);
+    std::shuffle(indices.begin(), indices.end(), rng); 
 
+    // On inverse les n_flips premiers bits ordonnés alétoirement
     for (int i = 0; i < n_flips; i++) {
         result[indices[i]] = 1 - result[indices[i]];
     }
@@ -270,25 +294,33 @@ double SurrogateSearcher::evaluate_fitness(const std::vector<int>& solution, con
     return fit;
 }
 
-py::array_t<int> SurrogateSearcher::drils_search(py::array_t<int> start_sol, py::array_t<double> coefs_, double alpha, int max_iter, unsigned int seed) {
+py::array_t<int> SurrogateSearcher::drils_search(py::array_t<int> start_sol, py::array_t<double> coefs_, double alpha, int max_iter, LocalSearchStrategy strat, unsigned int seed, int tabu_max_iter) {
     std::mt19937 rng(seed);
 
-    std::vector<int> p1 = to_vector(hill_climber(start_sol, coefs_));
+    std::vector<int> p1 = to_vector(local_search(start_sol, coefs_, strat, tabu_max_iter, rng()));
     std::vector<int> best = p1;
     double best_fit = evaluate_fitness(p1, coefs_);
 
 
-
+    // non incrémental, à modifier plus tard (garder en mémoire la fitness de p1)
     for (int iter = 0; iter < max_iter; iter++) {
         std::vector<int> x  = perturb(p1, alpha, rng());
-        std::vector<int> p2 = to_vector(hill_climber(to_array(x), coefs_));
+        std::vector<int> p2 = to_vector(local_search(to_array(x), coefs_, strat, tabu_max_iter, rng()));
 
         std::vector<int> child = partition_crossover(p1, p2, coefs_);
 
+        // Le PX n'a pas trouvé de combinaison meilleure que les parents existants
         if (child == p1 || child == p2) {
             p1 = p2;
+            // on change de la bassin d'attraction (non-elitist design of the acceptance criterion)
+            // cad même si f_hat(p2) < f_hat(p1)
         } else {
-            p1 = to_vector(hill_climber(to_array(child), coefs_));
+        // le PX a trouvé une meilleure combinaison
+        // on applique le HC pour garantir que p1 est un optimum local
+        // (requis pour que le PX soit efficace à la prochaine itération)
+        // En effet child est optimal dans le sous-espace des bits libres
+        // mais pas nécessairement dans l'espace complet
+            p1 = to_vector(local_search(to_array(child), coefs_, strat, tabu_max_iter, rng()));
         }
 
         double fit = evaluate_fitness(p1, coefs_);
@@ -358,25 +390,38 @@ py::array_t<int> SurrogateSearcher::tabu_search(py::array_t<int> start_sol, py::
 
 
 PYBIND11_MODULE(surrogate_search, m) {
+    py::enum_<SurrogateSearcher::HillClimberStrategy>(m, "HillClimberStrategy")
+        .value("BEST_IMPROVEMENT", SurrogateSearcher::HillClimberStrategy::BEST_IMPROVEMENT)
+        .value("FIRST_IMPROVEMENT", SurrogateSearcher::HillClimberStrategy::FIRST_IMPROVEMENT);
+
+    py::enum_<SurrogateSearcher::LocalSearchStrategy>(m, "LocalSearchStrategy")
+        .value("HC_BEST_IMPROVEMENT", SurrogateSearcher::LocalSearchStrategy::HC_BEST_IMPROVEMENT)
+        .value("HC_FIRST_IMPROVEMENT", SurrogateSearcher::LocalSearchStrategy::HC_FIRST_IMPROVEMENT)
+        .value("TABU", SurrogateSearcher::LocalSearchStrategy::TABU);
+
     py::class_<SurrogateSearcher>(m, "SurrogateSearcher")
         .def(py::init<const std::vector<std::vector<int>>&, int>(),
              py::arg("masks"), py::arg("N"))
         .def("hill_climber", &SurrogateSearcher::hill_climber,
-             py::arg("start_sol"), py::arg("coefs"))
+             py::arg("start_sol"), py::arg("coefs"),
+             py::arg("strat") = SurrogateSearcher::HillClimberStrategy::BEST_IMPROVEMENT,
+             py::arg("seed") = 42)
         .def("tabu_search",  &SurrogateSearcher::tabu_search,
              py::arg("start_sol"), py::arg("coefs"),
              py::arg("max_iter"),  py::arg("seed") = 42)
-        .def("get_variable_interaction_graph", &SurrogateSearcher::get_variable_interaction_graph,
-             py::arg("coefs"))
         .def("find_connected_components", &SurrogateSearcher::find_connected_components,
-             py::arg("graph"), py::arg("is_active"))
+            py::arg("is_active"), py::arg("coefs"))
         .def("compare_component", &SurrogateSearcher::compare_component,
              py::arg("component"), py::arg("p1"), py::arg("p2"), py::arg("coefs"))
         .def("partition_crossover", &SurrogateSearcher::partition_crossover,
              py::arg("p1"), py::arg("p2"), py::arg("coefs"))
         .def("perturb", &SurrogateSearcher::perturb,
              py::arg("solution"), py::arg("alpha"), py::arg("seed") = 42)
+        .def("local_search", &SurrogateSearcher::local_search,
+             py::arg("start_sol"), py::arg("coefs"), py::arg("strat"),
+             py::arg("tabu_max_iter") = 0, py::arg("seed") = 42)
         .def("drils_search", &SurrogateSearcher::drils_search,
              py::arg("start_sol"), py::arg("coefs"), py::arg("alpha"),
-             py::arg("max_iter"), py::arg("seed") = 42);
+             py::arg("max_iter"), py::arg("strat"), py::arg("seed") = 42,
+             py::arg("tabu_max_iter") = 0);
 }

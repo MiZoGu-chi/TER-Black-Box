@@ -2,7 +2,7 @@ import numpy as np
 import random
 
 from src.core.data_sampler import transform
-from src.core.cpp.surrogate_search import SurrogateSearcher
+from src.core.cpp.surrogate_search import SurrogateSearcher, LocalSearchStrategy, HillClimberStrategy
 
 def get_neighborhood(solution):
     N = len(solution)
@@ -147,34 +147,61 @@ def fi_baseline(sol, fit_fn):
 def bi_baseline(sol, fit_fn):
     return local_search(sol, fit_fn, best_improvement)
 
+def make_searcher(msk, sol):
+    return SurrogateSearcher([np.where(m)[0].tolist() for m in msk], len(sol))
 
-# Design à revoir complétement
+def make_drils(perturbation_strength, drils_factor, tabu_factor, strat):
+    def search(sol, mod, msk):
+        kwargs = {
+            'alpha': perturbation_strength,
+            'max_iter': len(sol) * drils_factor,
+            'seed': np.random.randint(0, 2**31),
+            'strat': strat,
+        }
+        if strat == LocalSearchStrategy.TABU:
+            kwargs['tabu_max_iter'] = len(sol) * tabu_factor
+        return make_searcher(msk, sol).drils_search(
+            np.asarray(sol, dtype=np.int32),
+            np.asarray(mod.coef_, dtype=np.float64),
+            **kwargs
+        )
+    return search
+
 ALGORITHMS = {
-    'fi': lambda sol, mod, msk: local_search(sol, get_surrogate_fitness_fn(mod, msk), first_improvement),
-    'bi': lambda sol, mod, msk: local_search(sol, get_surrogate_fitness_fn(mod, msk), best_improvement),
-    'tabu': lambda sol, mod, msk: tabu_search(sol, get_surrogate_fitness_fn(mod, msk)),
-    'cpp_hc': lambda sol, mod, msk: SurrogateSearcher(
-        [np.where(m)[0].tolist() for m in msk], len(sol)
-    ).hill_climber(
+    'fi':     lambda sol, mod, msk: local_search(sol, get_surrogate_fitness_fn(mod, msk), first_improvement),
+    'bi':     lambda sol, mod, msk: local_search(sol, get_surrogate_fitness_fn(mod, msk), best_improvement),
+    'tabu':   lambda sol, mod, msk: tabu_search(sol, get_surrogate_fitness_fn(mod, msk)),
+    'cpp_hc': lambda sol, mod, msk: make_searcher(msk, sol).hill_climber(
         np.asarray(sol, dtype=np.int32),
         np.asarray(mod.coef_, dtype=np.float64)
     ),
-    'cpp_tabu': None,
-    'cpp_drils': None,
+    'cpp_hc_fi': lambda sol, mod, msk: make_searcher(msk, sol).hill_climber(
+        np.asarray(sol, dtype=np.int32),
+        np.asarray(mod.coef_, dtype=np.float64),
+        HillClimberStrategy.FIRST_IMPROVEMENT,
+        np.random.randint(0, 2**31)
+    ),
 }
+
+DRILS_STRATEGIES = {
+    'cpp_drils_hc_bi': LocalSearchStrategy.HC_BEST_IMPROVEMENT,
+    'cpp_drils_hc_fi': LocalSearchStrategy.HC_FIRST_IMPROVEMENT,
+    'cpp_drils_tabu':  LocalSearchStrategy.TABU,
+}
+
+ALL_ALGORITHM_NAMES = list(ALGORITHMS.keys()) + ['cpp_tabu'] + list(DRILS_STRATEGIES.keys())
 
 def get_algorithm(name, tabu_factor, perturbation_strength=None, drils_factor=None):
     if name == 'cpp_tabu':
-        return lambda sol, mod, msk: SurrogateSearcher(
-            [np.where(m)[0].tolist() for m in msk], len(sol)
-        ).tabu_search(np.asarray(sol, dtype=np.int32), np.asarray(mod.coef_, dtype=np.float64),
-                      max_iter=len(sol) * tabu_factor, seed=np.random.randint(0, 2**31))
-    if name == 'cpp_drils':
-        return lambda sol, mod, msk: SurrogateSearcher(
-            [np.where(m)[0].tolist() for m in msk], len(sol)
-        ).drils_search(np.asarray(sol, dtype=np.int32), np.asarray(mod.coef_, dtype=np.float64),
-                        alpha=perturbation_strength, max_iter=len(sol) * drils_factor,
-                        seed=np.random.randint(0, 2**31))
+        return lambda sol, mod, msk: make_searcher(msk, sol).tabu_search(
+            np.asarray(sol, dtype=np.int32),
+            np.asarray(mod.coef_, dtype=np.float64),
+            max_iter=len(sol) * tabu_factor,
+            seed=np.random.randint(0, 2**31)
+        )
+    if name in DRILS_STRATEGIES:
+        return make_drils(perturbation_strength, drils_factor, tabu_factor, DRILS_STRATEGIES[name])
+
     return ALGORITHMS[name]
 
 BASELINE_ALGORITHMS = { # Uniquement pour pouvoir utiliser fn.__name__ ce qu'on ne peut pas faire avec juste une lambda, potentiellement à revoir 

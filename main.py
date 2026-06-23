@@ -8,7 +8,7 @@ from sklearn.exceptions import ConvergenceWarning
 
 from src.cli.commands import OptimizeCommand, CompareCommand, AnalyzeCommand, EvaluateCommand, RankCommand
 from src.core.models import MODELS
-from src.core.algorithm import ALGORITHMS, START_STRATEGIES
+from src.core.algorithm import ALGORITHMS, START_STRATEGIES, ALL_ALGORITHM_NAMES
 from src.core.surrogate_optimization import DUPLICATE_STRATEGIES
 
 def setup_environment():
@@ -36,12 +36,12 @@ if __name__ == "__main__":
 
     parser_optimize = subparsers.add_parser('optimize')
     parser_optimize.add_argument("--D", type=int, default=2)
-    parser_optimize.add_argument("--N", type=int, nargs='+', default=[64], choices=[64, 128, 256])
+    parser_optimize.add_argument("--N", type=int, nargs='+', default=[64], choices=[20, 64, 128, 256])
     parser_optimize.add_argument("--K", type=int, nargs='+', default=[1, 2], choices=[1, 2, 4, 8])
     parser_optimize.add_argument("--budget", type=int, default=1000)
     parser_optimize.add_argument("--initial_pop_size", type=int, default=20)
     parser_optimize.add_argument("--surrogate", type=str, default='lasso_lars', choices=MODELS.keys())
-    parser_optimize.add_argument("--algo", type=str, default='tabu', choices=ALGORITHMS.keys())
+    parser_optimize.add_argument("--algo", type=str, default='tabu', choices=ALL_ALGORITHM_NAMES)
     parser_optimize.add_argument("--start", type=str, default='rd', choices=START_STRATEGIES.keys())
     parser_optimize.add_argument("--alpha", type=float, default=0.001, help="alpha de lasso lars : terme de régularisation L1")
     parser_optimize.add_argument("--perturbation_strength", type=float, default=0.05, help="this (meta-)parameter is called the strength of the perturbation : drils perturbs the first parent by randomly flipping perturbation_strength * n bits")
