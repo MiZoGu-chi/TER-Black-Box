@@ -179,12 +179,7 @@ std::vector<std::vector<int>> SurrogateSearcher::find_connected_components(const
     return components;
 }
 
-bool SurrogateSearcher::compare_component(
-    const std::vector<int>& component,
-    const std::vector<int>& p1,
-    const std::vector<int>& p2,
-    py::array_t<double> coefs_)
-{
+bool SurrogateSearcher::compare_component(const std::vector<int>& component, const std::vector<int>& p1,  const std::vector<int>& p2, py::array_t<double> coefs_) {
     auto coefs = coefs_.unchecked<1>();
 
     std::vector<bool> mask_seen(_masks.size(), false);
@@ -193,7 +188,7 @@ bool SurrogateSearcher::compare_component(
     for (int var : component) {
         for (int mask_idx : _bit_to_masks[var]) {
             if (!mask_seen[mask_idx]) {
-                mask_seen[mask_idx] = true;
+                mask_seen[mask_idx] = true; // si plusieurs var du componet sont liées à un meme masque on ne l'ajoute pas deux fois
                 relevant_masks.push_back(mask_idx);
             }
         }
@@ -201,14 +196,14 @@ bool SurrogateSearcher::compare_component(
 
     double g_p1 = 0.0, g_p2 = 0.0;
 
-    for (int mask_idx : relevant_masks) {
+    for (int mask_idx : relevant_masks) { // parcours les masques 
         double c = coefs(mask_idx);
         if (c == 0.0) continue;
 
         int sum_p1 = 0, sum_p2 = 0;
-        for (int b : _masks[mask_idx]) {
-            sum_p1 += p1[b];
-            sum_p2 += p2[b];
+        for (int b : _masks[mask_idx]) { // parcours les bits à 1 du masque
+            sum_p1 += p1[b]; // somme des bits de p1 que regarde le masque
+            sum_p2 += p2[b]; // ..
         }
 
         double phi_p1 = (sum_p1 % 2 == 0) ? 1.0 : -1.0;

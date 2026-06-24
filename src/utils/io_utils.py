@@ -63,12 +63,22 @@ class OptimizationResult:
 
     @property
     def sparsity(self):
-        
+
         zero_count = np.sum(self.coefs == 0.0)
         total = len(self.coefs)
         pct = (zero_count / total) * 100
 
         return pct, zero_count, total
+
+
+def build_plot_tag(N, K, surrogate, algo, alpha=None, tabu_factor=None):
+    subdir = f"{N}/{K}/{surrogate}"
+    if alpha is not None:
+        subdir += f"/{alpha:g}"
+    subdir += f"/{algo}"
+    if tabu_factor is not None and 'tabu' in algo:
+        subdir += f"/{tabu_factor}"
+    return subdir, subdir.replace('/', '_')
 
 
 from src.visualization import save_df_as_image

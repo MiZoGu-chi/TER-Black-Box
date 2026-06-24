@@ -3,7 +3,7 @@ from collections import defaultdict
 from sklearn.base import clone
 
 from .base import Command
-from src.utils.io_utils import OptimizationResult
+from src.utils.io_utils import OptimizationResult, build_plot_tag
 from src.core.data_sampler import transform
 from src.core.nk import load_landscape_and_masks
 from src.core.models import MODELS
@@ -52,15 +52,8 @@ class EvaluateCommand(Command):
                 N, K, D, num, run_seed = meta['N'], meta['K'], meta['D'], meta['num'], meta['seed']
 
                 if plot_subdir is None:
-                    alpha = meta.get('alpha')
-                    tabu_factor = meta.get('tabu_factor')
-                    plot_subdir = f"{N}/{K}/{meta['surrogate']}"
-                    if alpha is not None:
-                        plot_subdir += f"/{alpha:g}"
-                    plot_subdir += f"/{meta['algo']}"
-                    if tabu_factor is not None and 'tabu' in meta['algo']:
-                        plot_subdir += f"/{tabu_factor}"
-                    plot_tag = plot_subdir.replace('/', '_')
+                    plot_subdir, plot_tag = build_plot_tag(
+                        N, K, meta['surrogate'], meta['algo'], meta.get('alpha'), meta.get('tabu_factor'))
                 if plot_N is None:
                     plot_N = N
 

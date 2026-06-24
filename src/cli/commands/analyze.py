@@ -7,7 +7,7 @@ from .base import Command
 
 from src.core.nk import load_landscape_and_masks
 
-from src.utils.io_utils import OptimizationResult
+from src.utils.io_utils import OptimizationResult, build_plot_tag
 from src.visualization import plot_aggregated_fidelity, plot_aggregated_convergence, plot_aggregated_fidelity_with_time, plot_confusion_metrics_distribution
 from src.core.evaluation import get_surrogate_interaction, compare_interaction, compute_confusion_metrics
 
@@ -67,13 +67,7 @@ class AnalyzeCommand(Command):
 
         K_str = "_".join(str(k) for k in sorted(all_K))
         if plot_N:
-            plot_subdir = f"{plot_N}/{K_str}/{plot_surrogate}"
-            if plot_alpha is not None:
-                plot_subdir += f"/{plot_alpha:g}"
-            plot_subdir += f"/{plot_algo}"
-            if plot_tabu_factor is not None and 'tabu' in plot_algo:
-                plot_subdir += f"/{plot_tabu_factor}"
-            plot_tag = plot_subdir.replace('/', '_')
+            plot_subdir, plot_tag = build_plot_tag(plot_N, K_str, plot_surrogate, plot_algo, plot_alpha, plot_tabu_factor)
         else:
             plot_subdir = None
             plot_tag = None
