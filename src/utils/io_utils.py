@@ -1,6 +1,9 @@
 import ast
+import os
 import numpy as np
 from src.visualization import save_plot
+from src.core.nk import NK_Landscape
+from src.core.walsh import generate_masks
 
 class OptimizationResult:
 
@@ -69,6 +72,51 @@ class OptimizationResult:
         pct = (zero_count / total) * 100
 
         return pct, zero_count, total
+
+
+def write_optimization_result(path, N, K, D, num, seed, algo, surrogate_name, mean_local_optima,
+                               header_alpha, algo_factor, duplicate_strategy,
+                               history, fidelity_history, best_sol, coefs,
+                               alpha_history, write_alpha_history):
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(path, "w") as f:
+        f.write(f"{N} {K} {D} {num} {seed} {algo} {surrogate_name} {mean_local_optima} {header_alpha} {algo_factor} {duplicate_strategy}\n")
+
+        f.write("#\n")
+        for sol, budg in history:
+            f.write(f"{sol} {budg}\n")
+
+        f.write("#\n")
+        for pred, real, n_eval in fidelity_history:
+            f.write(f"{pred} {real} {n_eval}\n")
+
+        f.write("#\n")
+        f.write(f"{best_sol.tolist()}\n")
+
+        f.write("#\n")
+        f.write(f"{coefs}\n")
+
+        if write_alpha_history:
+            f.write("#\n")
+            for n_eval, alpha_ in alpha_history:
+                f.write(f"{n_eval} {alpha_}\n")
+
+
+def instance_path(N, K, num):
+    return f"instances/{N}/{K}/nk_{N}_{K}_{num}.txt"
+
+
+def load_landscape_and_masks(N, K, D, num):
+    instance_name = instance_path(N, K, num)
+
+    if not os.path.exists(instance_name):
+        raise FileNotFoundError(f"L'instance {instance_name} est introuvable.")
+
+    landscape = NK_Landscape(instance_name)
+    masks = generate_masks(N, D)
+
+    return landscape, masks
 
 
 def build_plot_tag(N, K, surrogate, algo, alpha=None, tabu_factor=None):

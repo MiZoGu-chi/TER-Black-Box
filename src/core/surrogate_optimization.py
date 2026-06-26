@@ -46,7 +46,7 @@ def run_surrogate_optimization(budget, N, initial_pop_size, landscape, masks, su
 
         start_sol = start_fun(best_sol, N) # random par défaut, egreedy et best disponible
 
-        candidate_sol = search_fun(start_sol, surrogate_model, masks) # tabu par défaut, local search bi et fi disponible
+        candidate_sol = search_fun(start_sol, surrogate_model) # tabu par défaut, local search bi et fi disponible
 
         is_random = False
         if tuple(candidate_sol) in visited:

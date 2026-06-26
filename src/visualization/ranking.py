@@ -36,7 +36,7 @@ def plot_score_vs_param(df, param):
                 )
 
             if param == 'alpha':
-                ax.set_xscale('log')
+                ax.set_xscale('symlog', linthresh=1e-4)
 
             if k_df['local_optima'].notna().any():
                 ax.axhline(k_df['local_optima'].mean(), linestyle='--', color='grey',
@@ -64,7 +64,7 @@ def plot_score_vs_alpha(df):
             ax.errorbar(k_df['alpha'], k_df['mean'], yerr=k_df['std'],
                         marker='o', label=f"K={K}", color=color, capsize=3)
 
-        ax.set_xscale('log')
+        ax.set_xscale('symlog', linthresh=1e-4)
         ax.set_xlabel('alpha')
         ax.set_ylabel('Score agrégé')
         ax.legend()
@@ -81,9 +81,14 @@ def plot_heatmap_alpha_tabu(df):
         tabu_factors = sorted(n_df['tabu_factor'].unique())
 
         n_cols = len(Ks)
-        fig, axes = plt.subplots(1, n_cols, figsize=(4 * n_cols, 3.5))
+        cell_size = 0.6
+        fig_w = max(4, cell_size * len(alphas) + 1.5) * n_cols
+        fig_h = max(3.5, cell_size * len(tabu_factors) + 1.5)
+        fig, axes = plt.subplots(1, n_cols, figsize=(fig_w, fig_h))
         if n_cols == 1:
             axes = [axes]
+
+        show_text = len(tabu_factors) * len(alphas) <= 80
 
         vmin = n_df['score'].min()
         vmax = n_df['score'].max()
@@ -108,10 +113,11 @@ def plot_heatmap_alpha_tabu(df):
             ax.set_xlabel('alpha')
             ax.set_ylabel(TABU_LABEL)
 
-            for i in range(len(tabu_factors)):
-                for j in range(len(alphas)):
-                    if not np.isnan(grid[i, j]):
-                        ax.text(j, i, f"{grid[i, j]:.4f}", ha='center', va='center', fontsize=8)
+            if show_text:
+                for i in range(len(tabu_factors)):
+                    for j in range(len(alphas)):
+                        if not np.isnan(grid[i, j]):
+                            ax.text(j, i, f"{grid[i, j]:.4f}", ha='center', va='center', fontsize=8)
 
             plt.colorbar(im, ax=ax)
 

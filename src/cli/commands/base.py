@@ -5,6 +5,11 @@ class Command(ABC):
     def __init__(self, args):
         self.args = args
 
+    @staticmethod
+    @abstractmethod
+    def add_arguments(parser):
+        pass
+
     @abstractmethod
     def execute(self):
         pass

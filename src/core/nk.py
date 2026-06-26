@@ -1,11 +1,8 @@
 from collections import defaultdict
 from itertools import combinations
-import os
 
-from src.core.algorithm import get_black_box_fitness_fn
+from src.core.fitness import get_black_box_fitness_fn
 import numpy as np
-
-from src.core.walsh import generate_masks
 
 class NK_Landscape:
 
@@ -83,16 +80,3 @@ class NK_Landscape:
             fitness.append(self.eval(local_optimum))
 
         return float(np.mean(fitness))
-        
-#############################################################
-
-def load_landscape_and_masks(N, K, D, num):
-    instance_name = f"instances/{N}/{K}/nk_{N}_{K}_{num}.txt"
-    
-    if not os.path.exists(instance_name):
-        raise FileNotFoundError(f"L'instance {instance_name} est introuvable.")
-        
-    landscape = NK_Landscape(instance_name)
-    masks = generate_masks(N, D)
-    
-    return landscape, masks

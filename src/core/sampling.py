@@ -2,7 +2,8 @@ import numpy as np
 import random
 from abc import ABC, abstractmethod
 
-from src.core.algorithm import local_search, best_improvement, get_black_box_fitness_fn
+from src.core.local_search import local_search, best_improvement
+from src.core.fitness import get_black_box_fitness_fn
 
 def generate_hamming_neighbors(reference_solution, distance, n_samples, rng):
     N = len(reference_solution)
