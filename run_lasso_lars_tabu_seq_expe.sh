@@ -1,6 +1,8 @@
 #!/bin/bash
 
 export CPUS_PER_TASK=1
+export SLURM_QOS=quick
+export SLURM_TIME=03:00:00
 
 ALPHAS=(0.00001)
 TABU_FACTORS=(2)
