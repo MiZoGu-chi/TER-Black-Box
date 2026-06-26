@@ -26,8 +26,8 @@ class OptimizeCommand(Command):
         parser.add_argument("--start", type=str, default='rd', choices=START_STRATEGIES.keys())
         parser.add_argument("--alpha", type=float, default=0.00001, help="alpha de lasso lars : terme de régularisation L1")
         parser.add_argument("--perturbation_strength", type=float, default=0.05, help="this (meta-)parameter is called the strength of the perturbation : drils perturbs the first parent by randomly flipping perturbation_strength * n bits")
-        parser.add_argument("--tabu_factor", type=int, default=10)
-        parser.add_argument("--drils_factor", type=int, default=10)
+        parser.add_argument("--tabu_factor", type=int, default=2)
+        parser.add_argument("--drils_factor", type=int, default=2)
         parser.add_argument("--duplicate_strategy", type=str, default='random', choices=DUPLICATE_STRATEGIES)
 
         instance_selector = parser.add_mutually_exclusive_group()
