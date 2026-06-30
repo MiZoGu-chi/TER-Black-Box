@@ -1,13 +1,12 @@
 #!/bin/bash
 
 export CPUS_PER_TASK=1
-export SLURM_QOS=quick
-export SLURM_TIME=03:00:00
+export SLURM_QOS=short
 
 ALPHAS=(0.00001)
 TABU_FACTORS=(2)
 N=(64)
-K=(1 2 4 8)
+K=(1)
 D=(3)
 N_SEEDS=10
 N_INSTANCES=10

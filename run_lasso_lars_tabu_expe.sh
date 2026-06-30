@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export CPUS_PER_TASK=10
+
 ALPHAS=(0.00001)
 TABU_FACTORS=(2)
 N=(64)
