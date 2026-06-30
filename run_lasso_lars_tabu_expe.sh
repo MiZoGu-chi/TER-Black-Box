@@ -10,7 +10,7 @@ for alpha in "${ALPHAS[@]}"; do
     for factor in "${TABU_FACTORS[@]}"; do
         for n in "${N[@]}"; do
             for k in "${K[@]}"; do
-                bash run_expe.sh optimize --N "$n" --K "$k" --D "$D" --budget 10000 --surrogate lasso_lars --algo cpp_tabu --alpha "$alpha" --tabu_factor "$factor" --duplicate_strategy random
+                bash run_expe.sh optimize --N "$n" --K "$k" --D "$D" --budget 10000 --surrogate lasso_lars --algo tabu --alpha "$alpha" --tabu_factor "$factor" --duplicate_strategy random
             done
         done
     done

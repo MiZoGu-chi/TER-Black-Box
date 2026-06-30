@@ -11,7 +11,7 @@ setup(
                 "src/core/cpp/local_search.cpp",
                 "src/core/cpp/hill_climber.cpp",
                 "src/core/cpp/tabu_search.cpp",
-                "src/core/cpp/ils.cpp",
+                "src/core/cpp/drils.cpp",
                 "src/core/cpp/drils.cpp",
                 "src/core/cpp/bindings.cpp",
             ],

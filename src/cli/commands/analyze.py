@@ -4,18 +4,18 @@ from collections import defaultdict
 from .base import Command
 from src.utils.io_utils import build_plot_tag
 from src.utils.analysis_report import analyse_optimization_file
-from src.visualization import plot_aggregated_fidelity, plot_aggregated_convergence, plot_aggregated_fidelity_with_time, plot_confusion_metrics_distribution
+from src.visualization import plot_aggregated_convergence, plot_aggregated_fidelity_with_time, plot_confusion_metrics_distribution, plot_best_fitness_distribution
 from src.core.evaluation import compute_fidelity_mae, create_metrics_dataframe
 
 class AnalyzeCommand(Command):
 
     @staticmethod
     def add_arguments(parser):
-        parser.add_argument("path", type=str, nargs='+')
+        parser.add_argument("path", type=str, nargs='+', help="Chemin vers le(s) dossier(s) ou le(s) fichier(s) d'output de l'optimisation à analyser")
 
     def execute(self):
 
-        files = self._get_files()
+        files = self.get_files()
 
         all_matrices_by_K = defaultdict(list)
 
@@ -28,12 +28,11 @@ class AnalyzeCommand(Command):
         max_fitness_by_K = defaultdict(list)
         fitness_trajectories_by_K = defaultdict(list)
         fidelity_samples_by_K = defaultdict(list)
-        final_scatter_by_K = defaultdict(list)
         mean_local_optima_by_K = defaultdict(list)
 
         for file in files:
             try:
-                meta, confusion_matrix, fidelity, fitness, final_scatter, sparsity = analyse_optimization_file(file)
+                meta, confusion_matrix, fidelity, fitness, sparsity = analyse_optimization_file(file)
 
                 N, K, D = meta['N'], meta['K'], meta['D']
                 all_K.add(K)
@@ -53,9 +52,6 @@ class AnalyzeCommand(Command):
                     fidelity_samples_by_K[K].extend(fidelity)
                     maes.append(compute_fidelity_mae(fidelity))
 
-                if len(final_scatter) > 0:
-                    final_scatter_by_K[K].append(final_scatter)
-
                 if len(fitness) > 0:
                     fitness_trajectories_by_K[K].append(fitness)
 
@@ -66,15 +62,16 @@ class AnalyzeCommand(Command):
                 print(f"Erreur lors de l'analyse de {file.name} : {e}")
 
         K_str = "_".join(str(k) for k in sorted(all_K))
+
         if plot_N:
             plot_subdir, plot_tag = build_plot_tag(plot_N, K_str, plot_surrogate, plot_algo, plot_alpha, plot_tabu_factor)
         else:
             plot_subdir = None
             plot_tag = None
-        self._report_results(all_matrices_by_K, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, mean_local_optima_by_K, plot_subdir, plot_tag, plot_surrogate, plot_algo)
+        self.report_results(all_matrices_by_K, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, mean_local_optima_by_K, plot_subdir, plot_tag, plot_surrogate, plot_algo)
 
 
-    def _report_results(self, all_matrices_by_K, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, final_scatter_by_K, mean_local_optima_by_K, subdir=None, tag=None, surrogate=None, algo=None):
+    def report_results(self, all_matrices_by_K, N, maes, max_fitness_by_K, fidelity_samples_by_K, fitness_trajectories_by_K, mean_local_optima_by_K, subdir=None, tag=None, surrogate=None, algo=None):
 
         for K, scores in sorted(max_fitness_by_K.items()):
             mean_score = np.mean(scores)
@@ -95,6 +92,7 @@ class AnalyzeCommand(Command):
         plot_aggregated_convergence(fitness_trajectories_by_K, mean_local_optima_by_K, subdir=subdir, tag=tag)
         plot_aggregated_fidelity_with_time(fidelity_samples_by_K, subdir=subdir, tag=tag)
         plot_confusion_metrics_distribution(all_matrices_by_K, N, surrogate=surrogate, algo=algo, subdir=subdir, tag=tag)
+        plot_best_fitness_distribution(max_fitness_by_K, mean_local_optima_by_K, subdir=subdir, tag=tag)
 
 ##########
 

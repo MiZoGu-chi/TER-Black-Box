@@ -11,9 +11,9 @@ class EvaluateCommand(Command):
 
     @staticmethod
     def add_arguments(parser):
-        parser.add_argument("path", type=str)
-        parser.add_argument("--samples", type=int, default=1000)
-        parser.add_argument("--sampler", type=str, default='whitebox', choices=list(SAMPLERS.keys()))
+        parser.add_argument("path", type=str, help="Chemin vers le(s) dossier(s) ou le(s) fichier(s) d'output de l'optimisation à analyser")
+        parser.add_argument("--samples", type=int, default=1000, help="Nombre de solution de test à générer et tester sur chaque fichiers d'ouput de l'optimisation")
+        parser.add_argument("--sampler", type=str, default='whitebox', choices=list(SAMPLERS.keys()), help="choix du sampler, bon en réalité on va prendre whitebox tout le temps..")
 
     def __init__(self, args):
         super().__init__(args)
@@ -21,7 +21,7 @@ class EvaluateCommand(Command):
         self.samples = args.samples
 
     def execute(self):
-        files = self._get_files()
+        files = self.get_files()
 
         if not files:
             print("Aucun fichier trouvé.")
