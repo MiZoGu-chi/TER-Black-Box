@@ -5,6 +5,14 @@ from src.core.local_search import local_search, tabu_search, best_improvement, f
 from src.core.cpp.surrogate_search import HillClimber, TabuSearch, DRILS
 from src.core.drils import drils_nk
 
+ALGORITHM_NAMES = [
+    'hc_fi', 
+    'hc_bi', 
+    'tabu', 
+    'drils_hc_bi', 
+    'drils_hc_fi', 
+    'drils_tabu'
+]
 
 def fi_baseline(sol, fit_fn):
     return local_search(sol, fit_fn, first_improvement)
@@ -44,21 +52,16 @@ def get_algorithm_factory(name, tabu_factor=None, perturbation_strength=None, dr
     raise ValueError(f"Algorithme inconnu : {name}")
 
 
-ALGORITHM_NAMES = ['hc', 'hc_fi', 'tabu', 'drils_hc_bi', 'drils_hc_fi', 'drils_tabu']
-
-
-BASELINE_NAMES = ['fi', 'bi', 'tabu', 'drils_nk_hc_bi', 'drils_nk_hc_fi', 'drils_nk_tabu']
-
 def make_baseline(name, alpha=None, drils_factor=None):
     match name:
-        case 'fi':
-            return lambda landscape: fi_baseline
-        case 'bi':
+        case 'hc_fi':
             return lambda landscape: bi_baseline
+        case 'hc_bi':
+            return lambda landscape: fi_baseline
         case 'tabu':
             return lambda landscape: tabu_search
-        case 'drils_nk_hc_bi' | 'drils_nk_hc_fi' | 'drils_nk_tabu':
-            inner_ls = {'drils_nk_hc_bi': bi_baseline, 'drils_nk_hc_fi': fi_baseline, 'drils_nk_tabu': tabu_search}[name]
+        case 'drils_hc_bi' | 'drils_hc_fi' | 'drils_tabu':
+            inner_ls = {'drils_hc_bi': bi_baseline, 'drils_hc_fi': fi_baseline, 'drils_tabu': tabu_search}[name]
             def factory(landscape):
                 vig = landscape.get_variable_interaction_graph()
                 max_iter = landscape.N * drils_factor

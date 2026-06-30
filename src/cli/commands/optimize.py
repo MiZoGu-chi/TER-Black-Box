@@ -5,7 +5,7 @@ import multiprocessing
 
 from .base import Command
 from src.core.models import MODELS
-from src.core.algorithm import make_baseline, ALGORITHM_NAMES, BASELINE_NAMES, get_algorithm_factory
+from src.core.algorithm import make_baseline, ALGORITHM_NAMES, get_algorithm_factory
 from src.core.start_strategies import START_STRATEGIES
 from src.core.surrogate_optimization import DUPLICATE_STRATEGIES
 from src.utils.optimization_run import RunConfig, run_and_save, result_file_path, load_baselines
@@ -22,7 +22,6 @@ class OptimizeCommand(Command):
         parser.add_argument("--initial_pop_size", type=int, default=20, help="Taille de la population intiale sur laquelle on entraine le modéle avant de commencer l'optimisation guidée")
         parser.add_argument("--surrogate", type=str, default='lasso_lars', choices=MODELS.keys(), help="Modèle de regression à utiliser")
         parser.add_argument("--algo", type=str, default='tabu', choices=ALGORITHM_NAMES, help="Algorithme à utiliser pour l'optimisation guidée")
-        parser.add_argument("--baseline", type=str, default='bi', choices=BASELINE_NAMES) # à supprimer la baseline doit dépendre de l'algo
         parser.add_argument("--start", type=str, default='rd', choices=START_STRATEGIES.keys(), help="Stratégie de départ utiliser à chaque itération de la boucle d'optimisation guidée")
         parser.add_argument("--alpha", type=float, default=0.00001, help="terme de régularisation L1")
         parser.add_argument("--perturbation_strength", type=float, default=0.05, help="this (meta-)parameter is called the strength of the perturbation : drils perturbs the first parent by randomly flipping perturbation_strength * n bits")
@@ -62,7 +61,7 @@ class OptimizeCommand(Command):
                 perturbation_strength=args.perturbation_strength,
                 drils_factor=args.drils_factor
             ),
-            baseline_factory=make_baseline(args.baseline, alpha=args.perturbation_strength, drils_factor=args.drils_factor),
+            baseline_factory=make_baseline(args.algo, alpha=args.perturbation_strength, drils_factor=args.drils_factor),
             start_fn=START_STRATEGIES[args.start],
             budget=args.budget,
             initial_pop_size=args.initial_pop_size,
