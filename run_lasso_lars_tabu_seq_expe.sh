@@ -17,7 +17,7 @@ for alpha in "${ALPHAS[@]}"; do
             for k in "${K[@]}"; do
                 for instance in $(seq 0 $((N_INSTANCES - 1))); do
                     for seed in $(seq 0 $((N_SEEDS - 1))); do
-                        bash run_expe.sh optimize --N "$n" --K "$k" --D "$D" --budget 10000 --surrogate lasso_lars --algo cpp_tabu --alpha "$alpha" --tabu_factor "$factor" --duplicate_strategy random --instances "$instance" --seeds "$seed"
+                        bash run_expe.sh optimize --N "$n" --K "$k" --D "$D" --budget 10000 --surrogate lasso_lars --algo tabu --alpha "$alpha" --tabu_factor "$factor" --duplicate_strategy random --instances "$instance" --seeds "$seed"
                     done
                 done
             done

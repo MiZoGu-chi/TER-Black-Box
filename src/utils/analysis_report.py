@@ -22,4 +22,4 @@ def analyse_optimization_file(file):
 
     confusion_matrix_by_K = compare_interaction(surrogate_graph, real_graph, D)
 
-    return opti_res.meta, confusion_matrix_by_K, opti_res.fidelity_history, opti_res.fitness_history, opti_res.final_scatter, opti_res.sparsity
+    return opti_res.meta, confusion_matrix_by_K, opti_res.fidelity_history, opti_res.fitness_history, opti_res.sparsity

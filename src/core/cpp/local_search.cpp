@@ -32,9 +32,7 @@ void WalshSurrogateLocalSearch::init_walsh_state(const py::array_t<int>& sol_, c
             delta[x] -= 2.0 * coefs(i) * phi[i];
 }
 
-void WalshSurrogateLocalSearch::apply_incremental_flip(int bit, const py::array_t<double>& coefs_,
-                                          std::vector<int>& current, std::vector<double>& phi,
-                                          std::vector<double>& delta, double& cur_fit) {
+void WalshSurrogateLocalSearch::apply_incremental_flip(int bit, const py::array_t<double>& coefs_, std::vector<int>& current, std::vector<double>& phi, std::vector<double>& delta, double& cur_fit) {
     auto coefs = coefs_.unchecked<1>();
 
     current[bit] = 1 - current[bit]; // flip

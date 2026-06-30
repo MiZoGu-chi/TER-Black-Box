@@ -17,7 +17,7 @@ class RunConfig:
     surrogate_name: str
     model: object
     make_algorithm_fn: object
-    baseline_algo: object
+    baseline_factory: object
     start_fn: object
     budget: int
     initial_pop_size: int
@@ -26,7 +26,7 @@ class RunConfig:
     drils_factor: int
 
 
-def load_baselines(N_list, K_list, num_list, search_fn):
+def load_baselines(N_list, K_list, num_list, baseline_factory):
     baselines = {}
 
     for N in N_list:
@@ -35,7 +35,7 @@ def load_baselines(N_list, K_list, num_list, search_fn):
                 instance_name = instance_path(N, K, num)
                 if os.path.exists(instance_name):
                     landscape = NK_Landscape(instance_name)
-                    baselines[(N, K, num)] = landscape.mean_local_optima(search_fn)
+                    baselines[(N, K, num)] = landscape.mean_local_optima(baseline_factory(landscape))
 
     return baselines
 

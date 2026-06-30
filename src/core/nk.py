@@ -49,6 +49,7 @@ class NK_Landscape:
 
         return fitness / self.N
 
+    # retourne un dictionnaire organisé par ordre d'interaction
     def get_real_interaction(self):
 
         interactions = defaultdict(set)
@@ -66,6 +67,17 @@ class NK_Landscape:
                     interactions[order].add(interaction_group)
 
         return {order: sorted(groups) for order, groups in interactions.items()}
+
+    # retourne une liste d'adjacence
+    def get_variable_interaction_graph(self):
+        vig = [set() for _ in range(self.N)]
+        for link in self.links:
+            variables = link[:-1]
+            for i in variables:
+                for j in variables:
+                    if i != j:
+                        vig[i].add(j)
+        return vig
 
 
     def mean_local_optima(self, search_fn, n_runs=100, seed=42):

@@ -3,6 +3,7 @@ import numpy as np
 
 from src.core.local_search import local_search, tabu_search, best_improvement, first_improvement
 from src.core.cpp.surrogate_search import HillClimber, TabuSearch, DRILS
+from src.core.drils import drils_nk
 
 
 def fi_baseline(sol, fit_fn):
@@ -25,40 +26,43 @@ def search(searcher):
 
 
 def get_algorithm_factory(name, tabu_factor=None, perturbation_strength=None, drils_factor=None):
-    if name == 'cpp_hc':
+    if name == 'hc':
         return lambda masks, N: search(HillClimber(masks_to_indices(masks), N, HillClimber.Strategy.BEST_IMPROVEMENT))
-    if name == 'cpp_hc_fi':
+    if name == 'hc_fi':
         return lambda masks, N: search(HillClimber(masks_to_indices(masks), N, HillClimber.Strategy.FIRST_IMPROVEMENT))
-    if name == 'cpp_tabu':
+    if name == 'tabu':
         return lambda masks, N: search(TabuSearch(masks_to_indices(masks), N, N * tabu_factor))
-    if name == 'cpp_drils_hc_bi':
+    if name == 'drils_hc_bi':
         return lambda masks, N: search(DRILS(masks_to_indices(masks), N, DRILS.LocalSearch.HC_BEST_IMPROVEMENT,
             alpha=perturbation_strength, max_iter=N * drils_factor, tabu_max_iter=0))
-    if name == 'cpp_drils_hc_fi':
+    if name == 'drils_hc_fi':
         return lambda masks, N: search(DRILS(masks_to_indices(masks), N, DRILS.LocalSearch.HC_FIRST_IMPROVEMENT,
             alpha=perturbation_strength, max_iter=N * drils_factor, tabu_max_iter=0))
-    if name == 'cpp_drils_tabu':
+    if name == 'drils_tabu':
         return lambda masks, N: search(DRILS(masks_to_indices(masks), N, DRILS.LocalSearch.TABU,
             alpha=perturbation_strength, max_iter=N * drils_factor, tabu_max_iter=N * tabu_factor))
     raise ValueError(f"Algorithme inconnu : {name}")
 
 
-def make_algorithm(name, masks, N, **hyperparams):
-    return get_algorithm_factory(name, **hyperparams)(masks, N)
+ALGORITHM_NAMES = ['hc', 'hc_fi', 'tabu', 'drils_hc_bi', 'drils_hc_fi', 'drils_tabu']
 
 
-ALL_ALGORITHM_NAMES = ['cpp_hc', 'cpp_hc_fi', 'cpp_tabu', 'cpp_drils_hc_bi', 'cpp_drils_hc_fi', 'cpp_drils_tabu']
+BASELINE_NAMES = ['fi', 'bi', 'tabu', 'drils_nk_hc_bi', 'drils_nk_hc_fi', 'drils_nk_tabu']
 
-
-_BASELINES = {
-    'fi':   fi_baseline,
-    'bi':   bi_baseline,
-    'tabu': tabu_search,
-}
-
-ALL_BASELINE_NAMES = list(_BASELINES.keys())
-
-def make_baseline(name):
-    if name not in _BASELINES:
-        raise ValueError(f"Baseline inconnue : {name}")
-    return _BASELINES[name]
+def make_baseline(name, alpha=None, drils_factor=None):
+    match name:
+        case 'fi':
+            return lambda landscape: fi_baseline
+        case 'bi':
+            return lambda landscape: bi_baseline
+        case 'tabu':
+            return lambda landscape: tabu_search
+        case 'drils_nk_hc_bi' | 'drils_nk_hc_fi' | 'drils_nk_tabu':
+            inner_ls = {'drils_nk_hc_bi': bi_baseline, 'drils_nk_hc_fi': fi_baseline, 'drils_nk_tabu': tabu_search}[name]
+            def factory(landscape):
+                vig = landscape.get_variable_interaction_graph()
+                max_iter = landscape.N * drils_factor
+                return lambda start_sol, fit_fn: drils_nk(landscape, vig, inner_ls, alpha, max_iter, start_sol)
+            return factory
+        case _:
+            raise ValueError(f"Baseline inconnue : {name}")

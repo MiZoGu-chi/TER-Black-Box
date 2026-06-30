@@ -10,10 +10,10 @@ class CompareCommand(Command):
 
     @staticmethod
     def add_arguments(parser):
-        parser.add_argument("N", type=int, help="Taille de la solution")
+        parser.add_argument("N", type=int, help="paramètre N du NK-landscape")
         parser.add_argument("K", type=int, help="paramètre K du NK-landscape")
-        parser.add_argument("--instance", type=int, default=0, help="Indice de l'instance à charger (0-9)")
-        parser.add_argument("--D", type=int, default=2, help="Ordre de troncature du modèle de Walsh")
+        parser.add_argument("--instance", type=int, default=0, help="Indice de l'instance de NK-landscape à charger (0-9)")
+        parser.add_argument("--D", type=int, default=2, help="Ordre de troncature du modèle de substitution de Walsh")
         parser.add_argument("--n_train", type=int, default=400, help="Nombre de solutions générées pour entraîner les modèles de régression")
         parser.add_argument("--n_test", type=int, default=1000, help="Nombre de solutions générées pour évaluer les modèles de régression")
         parser.add_argument("--models", nargs='+', choices=MODELS.keys(), default=['lasso_lars'], help="Modèles de régression à comparer")

@@ -1,7 +1,6 @@
 import ast
 import os
 import numpy as np
-from src.visualization import save_plot
 from src.core.nk import NK_Landscape
 from src.core.walsh import generate_masks
 
@@ -10,9 +9,9 @@ class OptimizationResult:
     def __init__(self, filepath):
 
         self.filepath = filepath
-        self.meta, self.coefs, self.fitness_history, self.fidelity_history, self.final_scatter, self.best_sol = self._parse_file()
+        self.meta, self.coefs, self.fitness_history, self.fidelity_history, self.best_sol = self.parse_file()
 
-    def _parse_file(self):
+    def parse_file(self):
             with open(self.filepath, 'r') as f:
                 raw = f.read()
 
@@ -57,12 +56,11 @@ class OptimizationResult:
 
             # 4. Coefs
             coefs = np.array(ast.literal_eval(coefs_section.strip()))
-            final_scatter = np.array([])
 
             # 5. best_sol (optionnel)
             best_sol = np.array(ast.literal_eval(best_sol_section.strip()), dtype=int) if best_sol_section else None
 
-            return meta, coefs, fitness_history, fidelity_history, final_scatter, best_sol
+            return meta, coefs, fitness_history, fidelity_history, best_sol
 
     @property
     def sparsity(self):
@@ -128,5 +126,3 @@ def build_plot_tag(N, K, surrogate, algo, alpha=None, tabu_factor=None):
         subdir += f"/{tabu_factor}"
     return subdir, subdir.replace('/', '_')
 
-
-from src.visualization import save_df_as_image

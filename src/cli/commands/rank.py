@@ -6,13 +6,13 @@ class RankCommand(Command):
 
     @staticmethod
     def add_arguments(parser):
-        parser.add_argument("path", type=str, nargs='+', help="Fichier(s) ou dossier(s) contenant les runs opti_*.txt à classer")
+        parser.add_argument("path", type=str, nargs='+', help="Chemin vers le(s) dossier(s) ou le(s) fichier(s) d'output de l'optimisation à analyser")
 
     def execute(self):
-        files = self._get_files()
+        files = self.get_files()
         df = build_ranking_dataframe(files)
 
-        for (N, K), group in df.groupby(['N', 'K']):
+        for (N, K), group in df.groupby(['N', 'K'], sort=False):
             group = group.sort_values('score', ascending=False).reset_index(drop=True)
             group.index += 1
 
@@ -20,7 +20,7 @@ class RankCommand(Command):
             print(f"N={N}, K={K}")
             print(f"{'='*60}")
 
-            display = group[['alpha', 'tabu_factor', 'score', 'std', 'n_runs', 'amelioration']].copy()
+            display = group[['algo', 'alpha', 'tabu_factor', 'score', 'std', 'n_runs', 'amelioration']].copy()
             display['alpha'] = display['alpha'].map(lambda x: f"{x:g}")
             display['amelioration'] = display['amelioration'].map(lambda x: f"{x:+.4f}" if x is not None else "N/A")
             print(display.to_string(float_format=lambda x: f"{x:.4f}"))

@@ -25,7 +25,7 @@ class EvaluationSampler(ABC):
     def generate_samples(self, N, n_samples, seed, landscape=None):
         pass
 
-    def _set_seed(self, seed): # faire un utils et mettre ça dedans plutot
+    def set_seed(self, seed): # faire un utils et mettre ça dedans plutot
         np.random.seed(seed)
         random.seed(seed)
 
@@ -33,13 +33,13 @@ class EvaluationSampler(ABC):
 class RandomSampler(EvaluationSampler):
 
     def generate_samples(self, N, n_samples, seed, landscape=None):
-        self._set_seed(seed)
+        self.set_seed(seed)
         return np.random.randint(2, size=(n_samples, N))
 
 
 class StratifiedSampler(EvaluationSampler):
     def generate_samples(self, N, n_samples, seed, landscape=None):
-        self._set_seed(seed)
+        self.set_seed(seed)
 
         # * 10 arbitraire pour augmenter les chances d'avoir une bonne diversité de solutions
         pool_size = n_samples * 10
@@ -65,7 +65,7 @@ class StratifiedSampler(EvaluationSampler):
 
 class LocalSearchStratifiedSampler(EvaluationSampler):
     def generate_samples(self, N, n_samples, seed, landscape=None):
-        self._set_seed(seed)
+        self.set_seed(seed)
 
         n_per_stratum = n_samples // 3
         objective_function = get_black_box_fitness_fn(landscape)
@@ -128,7 +128,7 @@ class WhiteBoxStratifiedSampler(EvaluationSampler):
         return solution
 
     def generate_samples(self, N, n_samples, seed, landscape=None):
-        self._set_seed(seed)
+        self.set_seed(seed)
 
         n_per_stratum = n_samples // 3
 

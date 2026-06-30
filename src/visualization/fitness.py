@@ -79,3 +79,32 @@ def plot_covariate_scatter(covariate_scatter_by_K, N, n_runs_by_K, subdir=None, 
             ax.grid(True, linestyle='--', alpha=0.5)
             
             plt.tight_layout()
+
+def plot_best_fitness_distribution(max_fitness_by_K, mean_local_optima_by_K=None, subdir=None, tag=None):
+    if not max_fitness_by_K:
+        return
+    with figure("boxplot_fitness", tag, subdir=subdir):
+        sorted_K = sorted(max_fitness_by_K.keys())
+        data = [max_fitness_by_K[K] for K in sorted_K]
+        colors = [K_COLORS.get(K, 'black') for K in sorted_K]
+
+        fig, ax = plt.subplots(figsize=(8, 5))
+        bp = ax.boxplot(data, patch_artist=True, positions=range(len(sorted_K)))
+
+        for patch, color in zip(bp['boxes'], colors):
+            patch.set_facecolor(color)
+            patch.set_alpha(0.6)
+
+        if mean_local_optima_by_K:
+            for i, K in enumerate(sorted_K):
+                if K in mean_local_optima_by_K:
+                    ax.plot(i, np.mean(mean_local_optima_by_K[K]),
+                            marker='*', color=colors[i], markersize=13,
+                            zorder=5, linestyle='None', label=f"Moy. optima locaux K={K}")
+
+        ax.set_xticks(range(len(sorted_K)))
+        ax.set_xticklabels([f"K={K}" for K in sorted_K])
+        ax.set_ylabel("Fitness finale", fontsize=12)
+        ax.grid(True, alpha=0.3, axis='y')
+        ax.legend()
+        plt.tight_layout()

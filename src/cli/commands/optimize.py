@@ -5,7 +5,7 @@ import multiprocessing
 
 from .base import Command
 from src.core.models import MODELS
-from src.core.algorithm import make_baseline, ALL_ALGORITHM_NAMES, ALL_BASELINE_NAMES, get_algorithm_factory
+from src.core.algorithm import make_baseline, ALGORITHM_NAMES, BASELINE_NAMES, get_algorithm_factory
 from src.core.start_strategies import START_STRATEGIES
 from src.core.surrogate_optimization import DUPLICATE_STRATEGIES
 from src.utils.optimization_run import RunConfig, run_and_save, result_file_path, load_baselines
@@ -15,23 +15,23 @@ class OptimizeCommand(Command):
 
     @staticmethod
     def add_arguments(parser):
-        parser.add_argument("--D", type=int, default=2)
-        parser.add_argument("--N", type=int, nargs='+', default=[64], choices=[20, 64, 128, 256])
-        parser.add_argument("--K", type=int, nargs='+', default=[1, 2], choices=[1, 2, 4, 8])
-        parser.add_argument("--budget", type=int, default=1000)
-        parser.add_argument("--initial_pop_size", type=int, default=20)
-        parser.add_argument("--surrogate", type=str, default='lasso_lars', choices=MODELS.keys())
-        parser.add_argument("--algo", type=str, default='cpp_tabu', choices=ALL_ALGORITHM_NAMES)
-        parser.add_argument("--baseline", type=str, default='bi', choices=ALL_BASELINE_NAMES)
-        parser.add_argument("--start", type=str, default='rd', choices=START_STRATEGIES.keys())
-        parser.add_argument("--alpha", type=float, default=0.00001, help="alpha de lasso lars : terme de régularisation L1")
+        parser.add_argument("--D", type=int, default=2, help="Ordre de troncature du modèle de substitution de Walsh")
+        parser.add_argument("--N", type=int, nargs='+', default=[64], choices=[20, 64, 128, 256], help="paramètre N du NK-landscape, tout")
+        parser.add_argument("--K", type=int, nargs='+', default=[1, 2], choices=[1, 2, 4, 8], help="paramètre K du NK-landscape")
+        parser.add_argument("--budget", type=int, default=1000, help="Budget boîte noire d'appelle à la fonction objectif")
+        parser.add_argument("--initial_pop_size", type=int, default=20, help="Taille de la population intiale sur laquelle on entraine le modéle avant de commencer l'optimisation guidée")
+        parser.add_argument("--surrogate", type=str, default='lasso_lars', choices=MODELS.keys(), help="Modèle de regression à utiliser")
+        parser.add_argument("--algo", type=str, default='tabu', choices=ALGORITHM_NAMES, help="Algorithme à utiliser pour l'optimisation guidée")
+        parser.add_argument("--baseline", type=str, default='bi', choices=BASELINE_NAMES) # à supprimer la baseline doit dépendre de l'algo
+        parser.add_argument("--start", type=str, default='rd', choices=START_STRATEGIES.keys(), help="Stratégie de départ utiliser à chaque itération de la boucle d'optimisation guidée")
+        parser.add_argument("--alpha", type=float, default=0.00001, help="terme de régularisation L1")
         parser.add_argument("--perturbation_strength", type=float, default=0.05, help="this (meta-)parameter is called the strength of the perturbation : drils perturbs the first parent by randomly flipping perturbation_strength * n bits")
-        parser.add_argument("--tabu_factor", type=int, default=2)
-        parser.add_argument("--drils_factor", type=int, default=2)
-        parser.add_argument("--duplicate_strategy", type=str, default='random', choices=DUPLICATE_STRATEGIES)
+        parser.add_argument("--tabu_factor", type=int, default=2, help="Facteur d'exploration de l'aglorithme tabou (N * facteur d'exploration)")
+        parser.add_argument("--drils_factor", type=int, default=2, help="Facteur d'exploration de l'aglorithme DRILS (N * facteur d'exploration)")
+        parser.add_argument("--duplicate_strategy", type=str, default='random', choices=DUPLICATE_STRATEGIES, help="Stratégie utiliser lorsque l'on tombe sur une solution déjà évaluté pendant la boucle d'optimisation guidée")
 
         instance_selector = parser.add_mutually_exclusive_group()
-        instance_selector.add_argument("--instances", type=int, nargs='+', choices=range(10), help="Pour tester des instances spécifiques (attention : réduire le nombre d'instances ne réduit pas le temps d'exécution tant que n_jobs > n_instances)")
+        instance_selector.add_argument("--instances", type=int, nargs='+', choices=range(10), help="Pour tester des instances spécifiques (réduire le nombre d'instances ne réduit pas le temps d'exécution tant que n_jobs > n_instances)")
         instance_selector.add_argument("--n_instances", type=int, default=10, choices=range(1, 11))
 
         seed_selector = parser.add_mutually_exclusive_group()
@@ -62,7 +62,7 @@ class OptimizeCommand(Command):
                 perturbation_strength=args.perturbation_strength,
                 drils_factor=args.drils_factor
             ),
-            baseline_algo=make_baseline(args.baseline),
+            baseline_factory=make_baseline(args.baseline, alpha=args.perturbation_strength, drils_factor=args.drils_factor),
             start_fn=START_STRATEGIES[args.start],
             budget=args.budget,
             initial_pop_size=args.initial_pop_size,
@@ -77,7 +77,7 @@ class OptimizeCommand(Command):
         job_id = os.environ.get('SLURM_JOB_ID', 'local')
         timestamp = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{job_id}"
 
-        baselines = load_baselines(self.configs_N, self.configs_K, self.config_n_instances, self.config.baseline_algo)
+        baselines = load_baselines(self.configs_N, self.configs_K, self.config_n_instances, self.config.baseline_factory)
 
         Parallel(n_jobs=self.n_jobs)(delayed(run_and_save)(self.config, N, K, num, seed, timestamp, baselines[(N, K, num)])
             for N in self.configs_N

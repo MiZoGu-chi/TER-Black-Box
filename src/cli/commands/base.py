@@ -14,7 +14,7 @@ class Command(ABC):
     def execute(self):
         pass
 
-    def _get_files(self):
+    def get_files(self):
         raw = self.args.path
         paths = raw if isinstance(raw, list) else [raw]
         files = []
