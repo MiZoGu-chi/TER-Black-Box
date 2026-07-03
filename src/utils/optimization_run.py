@@ -71,13 +71,12 @@ def run_and_save(config, N, K, num, seed, timestamp, mean_local_optima):
     best_fit, best_sol, history, surrogate_model, fidelity_history, alpha_history = run_surrogate_optimization(
         config.budget, N, config.initial_pop_size, landscape, masks, config.model, alg, config.start_fn, config.duplicate_strategy)
 
-    algo_factor = config.drils_factor if 'drils' in config.algo else config.tabu_factor
     header_alpha = config.model.alpha if config.surrogate_name == 'lasso_lars' else None
 
     write_optimization_result(
         result_file_path(config, N, K, num, seed, timestamp),
         N, K, config.D, num, seed, config.algo, config.surrogate_name,
-        mean_local_optima, header_alpha, algo_factor, config.duplicate_strategy,
+        mean_local_optima, header_alpha, config.tabu_factor, config.duplicate_strategy, config.drils_factor,
         history, fidelity_history, best_sol, surrogate_model.coef_.tolist(),
         alpha_history, config.surrogate_name == 'lasso_lars_ic',
     )

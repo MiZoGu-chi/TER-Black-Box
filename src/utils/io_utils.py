@@ -30,34 +30,49 @@ class OptimizationResult:
             else:
                 raise ValueError(f"Format de fichier inconnu : {len(sections)} sections")
 
-            # 1. Méta
             header = meta_section.strip().split()
+            algo = header[5]
+
+            if len(header) > 11:
+                # nouveau format : tabu_factor et drils_factor écrits séparément
+                tabu_factor = int(header[9])
+                drils_factor = int(header[11])
+            elif len(header) > 9:
+                # ancien format : une seule valeur ambiguë à l'index 9
+                factor = int(header[9])
+                tabu_factor = factor if 'drils' not in algo else None
+                drils_factor = factor if 'drils' in algo else None
+            else:
+                tabu_factor = None
+                drils_factor = None
+
+            fitness_history = [(float(line.split()[0]), int(line.split()[1])) for line in fitness_section.strip().split('\n')]
+
             meta = {
                 'N': int(header[0]),
                 'K': int(header[1]),
                 'D': int(header[2]),
                 'num' : int(header[3]),
                 'seed': int(header[4]),
-                'algo': header[5],
+                'algo': algo,
                 'surrogate': header[6],
                 'mean_local_optima': float(header[7]) if len(header) > 7 else None,
                 'alpha': float(header[8]) if len(header) > 8 else None,
-                'tabu_factor': int(header[9]) if len(header) > 9 else None,
+                'tabu_factor': tabu_factor,
+                'duplicate_strategy': header[10] if len(header) > 10 else None,
+                'drils_factor': drils_factor,
+                # budget non stocké dans le header (dernière colonne n_eval de la dernière ligne de l'historique de fitness)
+                # pas optimal ...
+                'budget': fitness_history[-1][1],
             }
 
-            # 2. Fitness
-            fitness_history = [(float(line.split()[0]), int(line.split()[1])) for line in fitness_section.strip().split('\n')]
-
-            # 3. Fidelity
             fidelity_history = [
                 (float(line.split()[0]), float(line.split()[1]), int(line.split()[2]))
                 for line in fidelity_section.strip().split('\n') if line.strip()
             ]
 
-            # 4. Coefs
             coefs = np.array(ast.literal_eval(coefs_section.strip()))
 
-            # 5. best_sol (optionnel)
             best_sol = np.array(ast.literal_eval(best_sol_section.strip()), dtype=int) if best_sol_section else None
 
             return meta, coefs, fitness_history, fidelity_history, best_sol
@@ -72,14 +87,11 @@ class OptimizationResult:
         return pct, zero_count, total
 
 
-def write_optimization_result(path, N, K, D, num, seed, algo, surrogate_name, mean_local_optima,
-                               header_alpha, algo_factor, duplicate_strategy,
-                               history, fidelity_history, best_sol, coefs,
-                               alpha_history, write_alpha_history):
+def write_optimization_result(path, N, K, D, num, seed, algo, surrogate_name, mean_local_optima, header_alpha, tabu_factor, duplicate_strategy, drils_factor, history, fidelity_history, best_sol, coefs, alpha_history, write_alpha_history):
     path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(path, "w") as f:
-        f.write(f"{N} {K} {D} {num} {seed} {algo} {surrogate_name} {mean_local_optima} {header_alpha} {algo_factor} {duplicate_strategy}\n")
+        f.write(f"{N} {K} {D} {num} {seed} {algo} {surrogate_name} {mean_local_optima} {header_alpha} {tabu_factor} {duplicate_strategy} {drils_factor}\n")
 
         f.write("#\n")
         for sol, budg in history:
@@ -95,6 +107,7 @@ def write_optimization_result(path, N, K, D, num, seed, algo, surrogate_name, me
         f.write("#\n")
         f.write(f"{coefs}\n")
 
+        # Pour avoir une visibilité de l'évolution du alpha de lasso_lars_ic durant l'optimisation
         if write_alpha_history:
             f.write("#\n")
             for n_eval, alpha_ in alpha_history:

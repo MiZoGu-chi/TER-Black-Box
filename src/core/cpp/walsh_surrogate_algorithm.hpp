@@ -24,5 +24,5 @@ public:
 protected:
     int _N;
     std::vector<std::vector<int>> _masks;
-    std::vector<std::vector<int>> _bit_to_masks; // précompilé une seule fois, partagé entre DRILS et son _inner
+    std::vector<std::vector<int>> _bit_to_masks; 
 };

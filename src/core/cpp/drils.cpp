@@ -226,8 +226,7 @@ py::array_t<int> DRILSPlusPlus::search(py::array_t<int> start_sol, py::array_t<d
 
     for (int iter = 0; iter < _max_iter; iter++) {
         if (dist(rng) < _gamma) {
-            // on renouvelle p1 sans crossover pour explorer
-            // un nouveau bassin et alimenter le PX avec un parent plus frais
+            // on renouvelle p1 sans crossover pour explorer un nouveau bassin 
             std::vector<int> x = perturb(p1, _beta, rng());
             p1 = to_vector(_local_search->search(to_array(x), coefs_, rng()));
         } else {

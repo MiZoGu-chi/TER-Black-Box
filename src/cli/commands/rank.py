@@ -20,7 +20,7 @@ class RankCommand(Command):
             print(f"N={N}, K={K}")
             print(f"{'='*60}")
 
-            display = group[['algo', 'alpha', 'tabu_factor', 'score', 'std', 'n_runs', 'amelioration']].copy()
+            display = group[['algo', 'alpha', 'tabu_factor', 'drils_factor', 'budget', 'score', 'std', 'n_runs', 'amelioration']].copy()
             display['alpha'] = display['alpha'].map(lambda x: f"{x:g}")
             display['amelioration'] = display['amelioration'].map(lambda x: f"{x:+.4f}" if x is not None else "N/A")
             print(display.to_string(float_format=lambda x: f"{x:.4f}"))
