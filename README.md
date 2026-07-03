@@ -122,7 +122,6 @@ bash run_lasso_lars_tabu_seq_expe.sh
 
 ```
 instances/{N}/{K}/nk_{N}_{K}_{num}.txt       # instance num (0-9)
-instances/{N}/{K}/expected_local_optima.json # optima locaux moyens de référence
 ```
 
 Pré-générées et versionnées dans git (pas de commande pour les régénérer à
