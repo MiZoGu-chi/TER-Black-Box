@@ -46,7 +46,7 @@ def plot_aggregated_fidelity_with_time(fidelity_samples_by_K, subdir=None, tag=N
             sc = ax.scatter(reals, preds, c=n_evals, cmap='viridis', s=8, alpha=0.6)
             real_min, real_max = min(reals), max(reals)
             ax.plot([real_min, real_max], [real_min, real_max], 'k--', alpha=0.5)
-            # ylim calé sur la plage des fitness réelles (± 10%) : exclut les prédictions
+            # ylim calé sur la plage des fitness réelles (± 10%) exclut les prédictions
             # aberrantes de LassoLARS en début de run (ex: 28.6 pour K=4, n_evals=22)
             margin = (real_max - real_min) * 0.1
             ax.set_ylim(real_min - margin, real_max + margin)

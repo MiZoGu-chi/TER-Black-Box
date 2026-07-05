@@ -35,12 +35,12 @@ class OptimizationResult:
 
             if len(header) > 11:
                 # nouveau format : tabu_factor et drils_factor écrits séparément
-                tabu_factor = int(header[9])
-                drils_factor = int(header[11])
+                tabu_factor = int(header[9]) if 'tabu' in algo else None
+                drils_factor = int(header[11]) if 'drils' in algo else None
             elif len(header) > 9:
                 # ancien format : une seule valeur ambiguë à l'index 9
                 factor = int(header[9])
-                tabu_factor = factor if 'drils' not in algo else None
+                tabu_factor = factor if 'tabu' in algo else None
                 drils_factor = factor if 'drils' in algo else None
             else:
                 tabu_factor = None

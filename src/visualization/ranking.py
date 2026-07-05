@@ -6,51 +6,6 @@ from .utils import K_COLORS, save_plot
 TABU_LABEL = "facteur d'exploration du tabou"
 
 
-def plot_score_vs_param(df, param):
-    other_param = 'tabu_factor' if param == 'alpha' else 'alpha'
-    other_label = TABU_LABEL if other_param == 'tabu_factor' else 'alpha'
-    x_label = TABU_LABEL if param == 'tabu_factor' else param
-
-    for N, n_df in df.groupby('N'):
-        Ks = sorted(n_df['K'].unique())
-        other_vals = sorted(n_df[other_param].unique())
-
-        n_cols = len(Ks)
-        fig, axes = plt.subplots(1, n_cols, figsize=(5 * n_cols, 4), sharey=True)
-        if n_cols == 1:
-            axes = [axes]
-
-        for ax, K in zip(axes, Ks):
-            k_df = n_df[n_df['K'] == K]
-            color = K_COLORS.get(K, 'black')
-
-            for i, other_val in enumerate(other_vals):
-                sub = k_df[k_df[other_param] == other_val].sort_values(param)
-                if sub.empty:
-                    continue
-                ax.errorbar(
-                    sub[param], sub['score'], yerr=sub['std'],
-                    marker='o', label=f"{other_label}={other_val}",
-                    color=color, alpha=0.4 + 0.15 * i,
-                    capsize=3,
-                )
-
-            if param == 'alpha':
-                ax.set_xscale('symlog', linthresh=1e-4)
-
-            if k_df['local_optima'].notna().any():
-                ax.axhline(k_df['local_optima'].mean(), linestyle='--', color='grey',
-                           linewidth=1, label='optima locaux')
-
-            ax.set_xlabel(x_label)
-            ax.set_ylabel('Score agrégé')
-            ax.legend(fontsize=8)
-
-        plt.tight_layout()
-        save_plot(f"score_vs_{param}", f"N{N}", subdir=f"rank/{N}", overwrite=True)
-        plt.close()
-
-
 def plot_score_vs_alpha(df):
     for N, n_df in df.groupby('N'):
         Ks = sorted(n_df['K'].unique())

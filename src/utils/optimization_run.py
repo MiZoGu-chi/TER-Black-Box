@@ -47,10 +47,10 @@ def output_dir(config, N, K, timestamp):
         path = path / f"{config.model.alpha:g}"
 
     path = path / config.algo
+    if 'drils' in config.algo:
+        path = path / str(config.drils_factor)
     if 'tabu' in config.algo:
         path = path / str(config.tabu_factor)
-    elif 'drils' in config.algo:
-        path = path / str(config.drils_factor)
 
     return path / f"run_{timestamp}"
 
@@ -73,10 +73,13 @@ def run_and_save(config, N, K, num, seed, timestamp, mean_local_optima):
 
     header_alpha = config.model.alpha if config.surrogate_name == 'lasso_lars' else None
 
+    tabu_factor = config.tabu_factor if 'tabu' in config.algo else None
+    drils_factor = config.drils_factor if 'drils' in config.algo else None
+
     write_optimization_result(
         result_file_path(config, N, K, num, seed, timestamp),
         N, K, config.D, num, seed, config.algo, config.surrogate_name,
-        mean_local_optima, header_alpha, config.tabu_factor, config.duplicate_strategy, config.drils_factor,
+        mean_local_optima, header_alpha, tabu_factor, config.duplicate_strategy, drils_factor,
         history, fidelity_history, best_sol, surrogate_model.coef_.tolist(),
         alpha_history, config.surrogate_name == 'lasso_lars_ic',
     )

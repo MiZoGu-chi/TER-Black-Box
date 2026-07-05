@@ -1,6 +1,8 @@
 ## Installation
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
 ```
@@ -13,7 +15,7 @@ Point d'entrée unique : `main.py`, avec un sous-mode par commande.
 python3 main.py <commande> [options]
 ```
 
-### `optimize` — lancer des runs d'optimisation
+### `optimize`, lancer des runs d'optimisation
 
 Lance la boucle d'optimisation guidée par modèle de substitution sur une ou plusieurs instances de NK-landscape, et écrit un fichier de résultat par run.
 
@@ -23,12 +25,16 @@ python3 main.py optimize --N 64 --K 1 2 --D 2 --budget 10000 \
     --tabu_factor 2 --duplicate_strategy random
 ```
 
+Cette invocation directe tourne en local (utile pour tester rapidement une
+config). Pour les runs de fond (N=64, tous K/instances/seeds), voir
+[Lancer sur le cluster](#lancer-sur-le-cluster-slurm--nautilus) plus bas.
+
 Options principales (description reprise du `--help`) :
 
-- `--D` : ordre de troncature du modèle de substitution de Walsh (défaut 2)
-- `--N` : paramètre N du NK-landscape, tout (choix `20, 64, 128, 256`, défaut `64`)
-- `--K` : paramètre K du NK-landscape (choix `1, 2, 4, 8`, défaut `1 2`)
-- `--budget` : budget boîte noire d'appelle à la fonction objectif (défaut 1000)
+- `--D` : ordre de troncature du modèle de substitution de Walsh 
+- `--N` : paramètre N du NK-landscape, tout 
+- `--K` : paramètre K du NK-landscape 
+- `--budget` : budget boîte noire d'appelle à la fonction objectif
 - `--initial_pop_size` : taille de la population intiale sur laquelle on entraine le modéle avant de commencer l'optimisation guidée (défaut 20)
 - `--surrogate` : modèle de regression à utiliser (défaut `lasso_lars`, voir `src/core/models.py`)
 - `--algo` : algorithme à utiliser pour l'optimisation guidée (défaut `tabu`, choix `hc_fi, hc_bi, tabu, drils_hc_bi, drils_hc_fi, drils_tabu`)
@@ -38,13 +44,13 @@ Options principales (description reprise du `--help`) :
 - `--tabu_factor` : facteur d'exploration de l'aglorithme tabou (N * facteur d'exploration) (défaut 2)
 - `--drils_factor` : facteur d'exploration de l'aglorithme DRILS (N * facteur d'exploration) (défaut 2)
 - `--duplicate_strategy` : stratégie utiliser lorsque l'on tombe sur une solution déjà évaluté pendant la boucle d'optimisation guidée (défaut `random`, choix `ignore, random, skip`)
-- `--instances` : pour tester des instances spécifiques (réduire le nombre d'instances ne réduit pas le temps d'exécution tant que n_jobs > n_instances) — exclusif avec `--n_instances` (défaut : toutes, 0-9)
+- `--instances` : pour tester des instances spécifiques (réduire le nombre d'instances ne réduit pas le temps d'exécution tant que n_jobs > n_instances), exclusif avec `--n_instances` (défaut : toutes, 0-9)
 - `--n_instances` : nombre d'instances (défaut 10)
-- `--seeds` : seeds spécifiques — exclusif avec `--n_seeds`
+- `--seeds` : seeds spécifiques, exclusif avec `--n_seeds`
 - `--n_seeds` : nombre de seeds (défaut 10, donc 10 instances × 10 seeds = 100 runs par config)
 
 
-### `rank` — classer les configurations par score
+### `rank`, classer les configurations par score
 
 Agrège tous les fichiers de résultats par config `(N, K, algo, alpha, tabu_factor, drils_factor, budget)` et
 affiche un tableau trié + génère les graphiques suivante :
@@ -55,7 +61,7 @@ affiche un tableau trié + génère les graphiques suivante :
 python3 main.py rank results/opti_output/64
 ```
 
-### `analyze` — ...
+### `analyze`, ...
 
 Reprend un ou plusieurs fichiers/dossiers de résultats et 
 génère les graphes suivantes : convergence, de fidélité du modèle et de matrice de confusion
@@ -65,7 +71,7 @@ génère les graphes suivantes : convergence, de fidélité du modèle et de mat
 python3 main.py analyze results/opti_output/64/2/1/lasso_lars/1e-05/tabu
 ```
 
-### `evaluate` — évaluer la fidélité d'un modèle après l'optimisation guidée
+### `evaluate`, évaluer la fidélité d'un modèle après l'optimisation guidée
 
 Recharge le modèle appris (coefficients sauvegardés ds le fichier d'output) et le landscape réel associés à une instance, génère de nouveaux échantillons de test et mesure l'écart prédiction/réalité, gerner les graphes suivants :
 ///
@@ -78,7 +84,7 @@ python3 main.py evaluate results/opti_output/64/2/1/lasso_lars/1e-05/tabu
 - `--samples` : nombre de solution de test à générer et tester sur chaque fichiers d'ouput de l'optimisation (défaut 1000)
 - `--sampler` : choix du sampler, bon en réalité on va prendre whitebox tout le temps.. (défaut `whitebox`)
 
-### `compare` — comparer plusieurs modèles de régression sur une instance
+### `compare`, comparer plusieurs modèles de régression sur une instance
 
 Entraîne et compare plusieurs surrogates (`--models`) sur une seule instance
 de NK-landscape (pas de boucle d'optimisation, juste un banc d'essai de
@@ -98,23 +104,50 @@ python3 main.py compare 64 1 --models lasso_lars lars cg_ridge
 - `--loss_function` : fonction de perte utilisée pour comparer les modèles (défaut `mae`, choix `mae, mse`)
 
 Pour `rank`, `analyze` et `evaluate`, l'argument `path` accepte aussi bien un
-fichier `.txt` qu'un dossier — dans ce cas tous les `opti_*.txt` sous ce
+fichier `.txt` qu'un dossier, dans ce cas tous les `opti_*.txt` sous ce
 dossier sont récupérés récursivement (`rglob`). Passer un dossier trop haut
 dans la hiérarchie (ex: plusieurs runs de la même config) mélange les runs
 dans la même moyenne.
 
 ## Lancer sur le cluster (SLURM / nautilus)
 
-`run_expe.sh` est le wrapper `sbatch` (détecte le cluster via `hostname` et
-adapte les options SLURM). Il est appelé par les scripts `run_*_seq_expe.sh`
-à la racine, qui bouclent sur (alpha, N, K, instance, seed) et soumettent un
-job par combinaison — un job = un seul `--instances X --seeds Y`. Variables
-d'environnement lues par `run_expe.sh` : `SLURM_QOS` (défaut `short`) et
-`SLURM_TIME` (défaut `1-00:00:00`).
+Seul `optimize` a besoin du cluster (c'est la seule commande coûteuse en
+calcul) : `rank`, `analyze`, `evaluate` et `compare` s'exécutent toujours en
+local, sur les fichiers de `results/opti_output/` une fois rapatriés depuis
+le cluster (`scp`, pas d'automatisation pour l'instant).
 
 ```bash
-bash run_lasso_lars_tabu_seq_expe.sh
+scp -r Nautilus:~/TER-Black-Box/results/opti_output/{N}/{D}/{K}/{surrogate}/{alpha}/{algo}/[{drils_factor}]/[{tabu_factor}]/ /chemin/vers/TER-Black-Box/results/opti_output/{N}/{D}/{K}/{surrogate}/{alpha}/{algo}/[{drils_factor}]/[{tabu_factor}]
+```cd
+
+où `{N}/{D}/{K}/{surrogate}/{alpha}/{algo}/[{drils_factor}]/[{tabu_factor}]` suit
+la [hiérarchie des résultats d'optimisation](#résultats-doptimisation-resultsopti_output)
+ci-dessous (`{drils_factor}` n'existe que si `algo` contient `drils`,
+`{tabu_factor}` que si `algo` contient `tabu` — `drils_tabu` a donc les
+deux niveaux imbriqués).
+
+`slurm/run_expe.sh` est le wrapper `sbatch` (détecte le cluster via
+`hostname` et adapte les options SLURM, nautilus ou stargate). Il est
+appelé par les scripts `slurm/run_*_seq_expe.sh`, qui bouclent sur (alpha,
+N, K, instance, seed) et soumettent un job par combinaison, un job = un
+seul `--instances X --seeds Y`. Variables d'environnement lues par
+`slurm/run_expe.sh` : `SLURM_QOS` (défaut `short`) et `SLURM_TIME` (défaut
+`1-00:00:00`). Tous ces scripts s'exécutent depuis la racine du dépôt
+(chemins relatifs vers `main.py`, `results/`, etc.).
+
+```bash
+bash slurm/run_lasso_lars_tabu_seq_expe.sh
 ```
+
+`slurm/run_lasso_lars_tabu_expe.sh` (sans `_seq`) est différent : un seul job
+SLURM qui parallélise toutes les instances/seeds en interne (joblib,
+`CPUS_PER_TASK=10`) au lieu de soumettre un job par (instance, seed).
+
+Il n'existe pour l'instant aucun script générique/paramétrable pour lancer
+une expérience : chaque `slurm/run_*_expe.sh` est écrit à la main pour une
+combinaison (algo, surrogate, alpha(s), N, K(s)) donnée. Pour tester une
+nouvelle configuration, il faut écrire un nouveau script sur le modèle de
+ceux déjà présents dans `slurm/`.
 
 ## Hiérarchie des fichiers
 
@@ -131,14 +164,16 @@ ce jour).
 
 ```
 results/opti_output/
-  {N}/{D}/{K}/{surrogate}/{alpha}/{algo}/[{tabu_factor|drils_factor}]/
+  {N}/{D}/{K}/{surrogate}/{alpha}/{algo}/[{drils_factor}]/[{tabu_factor}]/
     run_{timestamp}_{job_id}/
       opti_{N}_{K}_{num}_{seed}_{algo}_{surrogate}.txt
 ```
 
-- Le sous-dossier `{tabu_factor}` (ou `{drils_factor}`) n'existe que si
-  `algo` contient `tabu` (resp. `drils`) — `hc_fi`/`hc_bi` s'arrêtent au
-  niveau `{algo}`.
+- Le sous-dossier `{drils_factor}` n'existe que si `algo` contient `drils`,
+  et `{tabu_factor}` que si `algo` contient `tabu` — `hc_fi`/`hc_bi`
+  s'arrêtent au niveau `{algo}`, `drils_hc_fi`/`drils_hc_bi` s'arrêtent à
+  `{drils_factor}`, et `drils_tabu` a les deux niveaux imbriqués
+  (`{drils_factor}/{tabu_factor}`).
 - `{alpha}` n'apparaît que si le surrogate a un paramètre `alpha` (cas des
   modèles lasso).
 - Un dossier `run_{timestamp}_{job_id}` est créé à **chaque exécution** de
@@ -146,7 +181,7 @@ results/opti_output/
   seule paire (instance `num`, `seed`). `job_id` vaut `local` hors SLURM.
 - Comme `rank`/`analyze`/`evaluate` lisent tous les `opti_*.txt` sous le
   chemin passé, relancer une config crée un nouveau dossier `run_*`
-  supplémentaire plutôt que d'écraser l'ancien — bien pointer vers le run
+  supplémentaire plutôt que d'écraser l'ancien, bien pointer vers le run
   voulu (ou nettoyer les anciens) pour ne pas mélanger plusieurs runs d'une
   même config dans une même moyenne.
 
@@ -168,5 +203,5 @@ results/plots/
 ```
 
 Par défaut les fichiers ne sont pas écrasés (`overwrite=False` dans
-`save_plot`) : un run répété ajoute `_1`, `_2`, ... au nom de fichier — sauf
-pour `rank` qui force `overwrite=True`.
+`save_plot`) : un run répété ajoute `_1`, `_2`, ... au nom de fichier sauf
+pour `rank` qui force avec `overwrite=True`.

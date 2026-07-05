@@ -1,4 +1,4 @@
-64 2 2 8 5 cpp_drils_tabu lasso_lars 0.7162829829687499 1e-05 2 random
+64 2 2 8 5 cpp_drils_tabu lasso_lars 0.7162829829687499 1e-05 2 random 2
 #
 0.568868359375 20
 0.5743517343750002 31
