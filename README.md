@@ -61,9 +61,10 @@ affiche un tableau trié + génère, sur l'ensemble des résultats (toutes confi
   d'`alpha`, ils sont agrégés ensemble sur ce graphique, potentiellement
   trop de choses différentes moyennées entre elles.
 - **Heatmap alpha × tabu_factor** (`rank/{N}/heatmap_alpha_tabu_N{N}.png`) :
-  grille `alpha` (x) × `tabu_factor` (y) du score, une sous-figure par `K`
-  (valeurs affichées en texte dans les cellules si la grille contient au
-  plus 80 cellules).
+  ne garde que les runs d'optimisation guidée utilisant tabou, grille
+  `alpha` (x) × `tabu_factor` (y) du score, une sous-figure par `K` (valeurs
+  affichées en texte dans les cellules si la grille contient au plus 80
+  cellules).
 
 ```bash
 python3 main.py rank {path}

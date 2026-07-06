@@ -31,6 +31,10 @@ def plot_score_vs_alpha(df):
 
 def plot_heatmap_alpha_tabu(df):
     for N, n_df in df.groupby('N'):
+        n_df = n_df[n_df['algo'] == 'tabu']
+        if n_df.empty:
+            continue
+
         Ks = sorted(n_df['K'].unique())
         alphas = sorted(n_df['alpha'].unique())
         tabu_factors = sorted(n_df['tabu_factor'].unique())
