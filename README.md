@@ -86,14 +86,11 @@ si on mélange plusieurs configs différentes) :
   un sous-graphe par `K`, nuage de points fitness prédite vs réelle observé
   pendant l'optimisation (couleur = nombre d'évaluations au moment de la
   mesure).
-- **Matrice de confusion des interactions** (`confusion_distribution_{tag}.png`) :
-  un sous-graphe par `K`, boîtes à moustaches du nombre de vrais/faux
-  positifs (TP/FP) par ordre d'interaction (1 à D) sur les coefficients
-  appris, étoile rouge = nombre réel médian d'interactions de cet ordre dans
-  le NK-landscape.
-- **Distribution de la fitness finale** (`boxplot_fitness_{tag}.png`) : boîte
-  à moustaches de la fitness finale par `K`, étoile = moyenne des optima
-  locaux.
+- **Détection des interactions** (`confusion_distribution_{tag}.png`) : un
+  sous-graphe par `K`, boxplot du nombre de vrais/faux positifs (TP/FP) par
+  ordre d'interaction (1 à D) sur les coefficients appris.
+- **Distribution de la fitness finale** (`boxplot_fitness_{tag}.png`) :
+  boxplot de la fitness finale par `K`.
 
 ```bash
 python3 main.py analyze {path}
