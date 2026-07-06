@@ -12,7 +12,7 @@ pip install -e .
 Point d'entrée unique : `main.py`, avec un sous-mode par commande.
 
 ```bash
-python3 main.py <commande> [options]
+python3 main.py {commande} [options]
 ```
 
 ### `optimize`, lancer des runs d'optimisation
@@ -20,7 +20,7 @@ python3 main.py <commande> [options]
 Lance la boucle d'optimisation guidée par modèle de substitution sur une ou plusieurs instances de NK-landscape, et écrit un fichier de résultat par run.
 
 ```bash
-python3 main.py optimize --N <N...> --K <K...> --D <D> --budget <budget> --surrogate <surrogate> --algo <algo> --alpha <alpha> --tabu_factor <tabu_factor> --drils_factor <drils_factor> --duplicate_strategy <duplicate_strategy>
+python3 main.py optimize --N {N} --K {K} --D {D} --budget {budget} --surrogate {surrogate} --algo {algo} --alpha {alpha} --tabu_factor {tabu_factor} --drils_factor {drils_factor} --duplicate_strategy {duplicate_strategy}
 ```
 
 Une invocation directe comme celle-ci tourne en local (utile pour tester
@@ -66,7 +66,7 @@ affiche un tableau trié + génère, sur l'ensemble des résultats (toutes confi
   plus 80 cellules).
 
 ```bash
-python3 main.py rank results/opti_output/64
+python3 main.py rank {path}
 ```
 
 ### `analyze`, analyser la convergence et la fidélité d'un ensemble de runs
@@ -96,7 +96,7 @@ si on mélange plusieurs configs différentes) :
   locaux.
 
 ```bash
-python3 main.py analyze results/opti_output/64
+python3 main.py analyze {path}
 ```
 
 ### `evaluate`, évaluer la fidélité d'un modèle après l'optimisation guidée
@@ -114,7 +114,7 @@ Recharge le modèle appris (coefficients sauvegardés ds le fichier d'output) et
   Hamming à la meilleure solution trouvée.
 
 ```bash
-python3 main.py evaluate results/opti_output/64
+python3 main.py evaluate {path}
 ```
 
 - `path` : chemin vers le(s) dossier(s) ou le(s) fichier(s) d'output de l'optimisation à analyser
@@ -130,7 +130,7 @@ taille de l'échantillon d'entraînement, une courbe par modèle comparé
 (`benchmark/{N}/{K}/{N}_{K}_{num}_{D}_{loss_function}_{seed}_{models-tag}.png`).
 
 ```bash
-python3 main.py compare <N> <K> --models <model...>
+python3 main.py compare {N} {K} --models {model}
 ```
 
 - `N` : paramètre N du NK-landscape
