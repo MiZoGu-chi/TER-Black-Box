@@ -53,19 +53,48 @@ Options principales (description reprise du `--help`) :
 ### `rank`, classer les configurations par score
 
 Agrège tous les fichiers de résultats par config `(N, K, algo, alpha, tabu_factor, drils_factor, budget)` et
-affiche un tableau trié + génère les graphiques suivante :
-- heatmap
-- ...
+affiche un tableau trié + génère, pour tout le `df` (toutes configs confondues) :
+
+- **Score en fonction d'alpha** (`rank/{N}/score_vs_alpha_N{N}.png`) : score
+  agrégé (moyenne ± écart-type) en fonction de `alpha` (échelle `symlog`),
+  une courbe par `K`. Attention, le regroupement se fait uniquement par
+  `alpha` (toutes les autres dimensions confondues) : si plusieurs
+  `algo`/`tabu_factor`/`drils_factor`/`budget` partagent la même valeur
+  d'`alpha`, ils sont agrégés ensemble sur ce graphique, potentiellement
+  trop de choses différentes moyennées entre elles.
+- **Heatmap alpha × tabu_factor** (`rank/{N}/heatmap_alpha_tabu_N{N}.png`) :
+  grille `alpha` (x) × `tabu_factor` (y) du score, une sous-figure par `K`
+  (valeurs affichées en texte dans les cellules si la grille contient au
+  plus 80 cellules).
 
 ```bash
 python3 main.py rank results/opti_output/64
 ```
 
-### `analyze`, ...
+### `analyze`, analyser la convergence et la fidélité d'un ensemble de runs
 
-Reprend un ou plusieurs fichiers/dossiers de résultats et 
-génère les graphes suivantes : convergence, de fidélité du modèle et de matrice de confusion
-(vrais/faux positifs sur les coefficients appris).
+Reprend un ou plusieurs fichiers/dossiers de résultats, affiche pour chaque
+`K` le score agrégé, l'écart-type et l'amélioration par rapport à la moyenne
+des optima locaux, et génère (subdir/tag construits à partir des métadonnées
+du premier fichier traité) :
+
+- **Convergence** (`optimization_convergence_trajectories_{tag}.png`) :
+  fitness moyenne (les trajectoires sont ré-échantillonnées en escalier sur
+  une grille commune de nombre d'évaluations) en fonction du nombre
+  d'évaluations, une courbe par `K`, avec une ligne pointillée horizontale =
+  moyenne des optima locaux.
+- **Fidélité pendant l'optimisation** (`model_training_fidelity_{tag}.png`) :
+  un sous-graphe par `K`, nuage de points fitness prédite vs réelle observé
+  pendant l'optimisation (couleur = nombre d'évaluations au moment de la
+  mesure).
+- **Matrice de confusion des interactions** (`confusion_distribution_{tag}.png`) :
+  un sous-graphe par `K`, boîtes à moustaches du nombre de vrais/faux
+  positifs (TP/FP) par ordre d'interaction (1 à D) sur les coefficients
+  appris, étoile rouge = nombre réel médian d'interactions de cet ordre dans
+  le NK-landscape.
+- **Distribution de la fitness finale** (`boxplot_fitness_{tag}.png`) : boîte
+  à moustaches de la fitness finale par `K`, étoile = moyenne des optima
+  locaux.
 
 ```bash
 python3 main.py analyze results/opti_output/64/2/1/lasso_lars/1e-05/tabu
@@ -73,8 +102,17 @@ python3 main.py analyze results/opti_output/64/2/1/lasso_lars/1e-05/tabu
 
 ### `evaluate`, évaluer la fidélité d'un modèle après l'optimisation guidée
 
-Recharge le modèle appris (coefficients sauvegardés ds le fichier d'output) et le landscape réel associés à une instance, génère de nouveaux échantillons de test et mesure l'écart prédiction/réalité, gerner les graphes suivants :
-///
+Recharge le modèle appris (coefficients sauvegardés ds le fichier d'output) et le landscape réel associés à une instance, génère de nouveaux échantillons de test et mesure l'écart prédiction/réalité, génère les graphes suivants :
+
+- **Fidélité globale** (`model_fidelity_{tag}.png`) : nuage de points
+  fitness réelle vs prédite sur les nouveaux échantillons de test, une
+  couleur par `K`.
+- **Covariate shift** (`covariate_shift_{tag}.png`) : un sous-graphe par
+  `K`, MAE moyenne (± écart-type en zone ombrée) en fonction de la distance
+  de Hamming à la meilleure solution trouvée (`best_sol`).
+- **Covariate scatter** (`covariate_scatter_K{K}_{tag}.png`) : un fichier
+  par `K`, nuage de points fitness réelle vs prédite coloré par distance de
+  Hamming à la meilleure solution trouvée.
 
 ```bash
 python3 main.py evaluate results/opti_output/64/2/1/lasso_lars/1e-05/tabu
@@ -88,7 +126,9 @@ python3 main.py evaluate results/opti_output/64/2/1/lasso_lars/1e-05/tabu
 
 Entraîne et compare plusieurs surrogates (`--models`) sur une seule instance
 de NK-landscape (pas de boucle d'optimisation, juste un banc d'essai de
-régression).
+régression). Génère un graphe de l'erreur (MAE ou MSE) en fonction de la
+taille de l'échantillon d'entraînement, une courbe par modèle comparé
+(`benchmark/{N}/{K}/{N}_{K}_{num}_{D}_{loss_function}_{seed}_{models-tag}.png`).
 
 ```bash
 python3 main.py compare 64 1 --models lasso_lars lars cg_ridge
@@ -196,11 +236,25 @@ trouvée, coefficients du modèle appris.
 
 ```
 results/plots/
-  rank/{N}/score_vs_alpha_N{N}.png
-  rank/{N}/heatmap_alpha_tabu_N{N}.png
-  benchmark/{N}/{K}/...                 # sorties de `compare`
-  ... (subdir + tags dépendent de la commande, voir src/visualization/)
+  rank/{N}/score_vs_alpha_N{N}.png                     # `rank`
+  rank/{N}/heatmap_alpha_tabu_N{N}.png                 # `rank`
+  {N}/{K}/{surrogate}/[{alpha}]/{algo}/[{tabu_factor}]/
+    optimization_convergence_trajectories_{tag}.png    # `analyze`
+    model_training_fidelity_{tag}.png                  # `analyze`
+    confusion_distribution_{tag}.png                   # `analyze`
+    boxplot_fitness_{tag}.png                           # `analyze`
+    model_fidelity_{tag}.png                            # `evaluate`
+    covariate_shift_{tag}.png                           # `evaluate`
+    covariate_scatter_K{K}_{tag}.png                    # `evaluate`
+  benchmark/{N}/{K}/{N}_{K}_{num}_{D}_{loss_function}_{seed}_{models-tag}.png  # `compare`
 ```
+
+`{tag}` correspond au `subdir` ci-dessus avec les `/` remplacés par `_`
+(`build_plot_tag` dans `src/utils/io_utils.py`) ; pour `analyze`, `{K}` dans
+`subdir` peut être plusieurs valeurs de `K` jointes par `_` si les fichiers
+passés couvrent plusieurs `K`. `[{alpha}]`/`[{tabu_factor}]` ne sont
+présents que dans les mêmes conditions que dans la hiérarchie de
+`results/opti_output/` ci-dessus.
 
 Par défaut les fichiers ne sont pas écrasés (`overwrite=False` dans
 `save_plot`) : un run répété ajoute `_1`, `_2`, ... au nom de fichier sauf
