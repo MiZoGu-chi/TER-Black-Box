@@ -51,7 +51,7 @@ Options principales (description reprise du `--help`) :
 ### `rank`, classer les configurations par score
 
 Agrège tous les fichiers de résultats par config `(N, K, algo, alpha, tabu_factor, drils_factor, budget)` et
-affiche un tableau trié + génère, pour tout le `df` (toutes configs confondues) :
+affiche un tableau trié + génère, sur l'ensemble des résultats (toutes configs confondues) :
 
 - **Score en fonction d'alpha** (`rank/{N}/score_vs_alpha_N{N}.png`) : score
   agrégé (moyenne ± écart-type) en fonction de `alpha` (échelle `symlog`),
@@ -73,8 +73,9 @@ python3 main.py rank results/opti_output/64
 
 Reprend un ou plusieurs fichiers/dossiers de résultats, affiche pour chaque
 `K` le score agrégé, l'écart-type et l'amélioration par rapport à la moyenne
-des optima locaux, et génère (subdir/tag construits à partir des métadonnées
-du premier fichier traité) :
+des optima locaux, et génère (le nom des fichiers reflète les métadonnées du
+premier fichier traité (N, surrogate, algo, alpha, tabu_factor), donc trompeur
+si on mélange plusieurs configs différentes) :
 
 - **Convergence** (`optimization_convergence_trajectories_{tag}.png`) :
   fitness moyenne (les trajectoires sont ré-échantillonnées en escalier sur
@@ -143,7 +144,7 @@ python3 main.py compare <N> <K> --models <model...>
 
 Pour `rank`, `analyze` et `evaluate`, l'argument `path` accepte aussi bien un
 fichier `.txt` qu'un dossier, dans ce cas tous les `opti_*.txt` sous ce
-dossier sont récupérés récursivement (`rglob`). Passer un dossier trop haut
+dossier sont récupérés récursivement. Passer un dossier trop haut
 dans la hiérarchie (ex: plusieurs runs de la même config) mélange les runs
 dans la même moyenne.
 
@@ -161,8 +162,8 @@ scp -r Nautilus:~/TER-Black-Box/results/opti_output/{N}/{D}/{K}/{surrogate}/{alp
 où `{N}/{D}/{K}/{surrogate}/{alpha}/{algo}/[{drils_factor}]/[{tabu_factor}]` suit
 la [hiérarchie des résultats d'optimisation](#résultats-doptimisation-resultsopti_output)
 ci-dessous (`{drils_factor}` n'existe que si `algo` contient `drils`,
-`{tabu_factor}` que si `algo` contient `tabu` — `drils_tabu` a donc les
-deux niveaux imbriqués).
+`{tabu_factor}` que si `algo` contient `tabu` ; `drils_tabu` a donc les deux
+niveaux imbriqués).
 
 `slurm/run_expe.sh` est le wrapper `sbatch` (détecte le cluster via
 `hostname` et adapte les options SLURM, nautilus ou stargate). Il est
@@ -208,7 +209,7 @@ results/opti_output/
 ```
 
 - Le sous-dossier `{drils_factor}` n'existe que si `algo` contient `drils`,
-  et `{tabu_factor}` que si `algo` contient `tabu` — `hc_fi`/`hc_bi`
+  et `{tabu_factor}` que si `algo` contient `tabu` ; `hc_fi`/`hc_bi`
   s'arrêtent au niveau `{algo}`, `drils_hc_fi`/`drils_hc_bi` s'arrêtent à
   `{drils_factor}`, et `drils_tabu` a les deux niveaux imbriqués
   (`{drils_factor}/{tabu_factor}`).
@@ -247,13 +248,12 @@ results/plots/
   benchmark/{N}/{K}/{N}_{K}_{num}_{D}_{loss_function}_{seed}_{models-tag}.png  # `compare`
 ```
 
-`{tag}` correspond au `subdir` ci-dessus avec les `/` remplacés par `_`
-(`build_plot_tag` dans `src/utils/io_utils.py`) ; pour `analyze`, `{K}` dans
-`subdir` peut être plusieurs valeurs de `K` jointes par `_` si les fichiers
-passés couvrent plusieurs `K`. `[{alpha}]`/`[{tabu_factor}]` ne sont
-présents que dans les mêmes conditions que dans la hiérarchie de
-`results/opti_output/` ci-dessus.
+`{tag}` correspond au chemin `{N}/{K}/{surrogate}/[{alpha}]/{algo}/[{tabu_factor}]`
+ci-dessus avec les `/` remplacés par `_` ; pour `analyze`, `{K}` peut être
+plusieurs valeurs jointes par `_` si les fichiers passés couvrent plusieurs
+`K`. `[{alpha}]`/`[{tabu_factor}]` ne sont présents que dans les mêmes
+conditions que dans la hiérarchie de `results/opti_output/` ci-dessus.
 
-Par défaut les fichiers ne sont pas écrasés (`overwrite=False` dans
-`save_plot`) : un run répété ajoute `_1`, `_2`, ... au nom de fichier sauf
-pour `rank` qui force avec `overwrite=True`.
+Par défaut les fichiers ne sont pas écrasés : un run répété ajoute `_1`,
+`_2`, ... au nom de fichier, sauf pour `rank` qui écrase toujours le
+précédent.
