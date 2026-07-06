@@ -20,14 +20,12 @@ python3 main.py <commande> [options]
 Lance la boucle d'optimisation guidée par modèle de substitution sur une ou plusieurs instances de NK-landscape, et écrit un fichier de résultat par run.
 
 ```bash
-python3 main.py optimize --N 64 --K 1 2 --D 2 --budget 10000 \
-    --surrogate lasso_lars --algo tabu --alpha 0.00001 \
-    --tabu_factor 2 --duplicate_strategy random
+python3 main.py optimize --N <N...> --K <K...> --D <D> --budget <budget> --surrogate <surrogate> --algo <algo> --alpha <alpha> --tabu_factor <tabu_factor> --drils_factor <drils_factor> --duplicate_strategy <duplicate_strategy>
 ```
 
-Cette invocation directe tourne en local (utile pour tester rapidement une
-config). Pour les runs de fond (N=64, tous K/instances/seeds), voir
-[Lancer sur le cluster](#lancer-sur-le-cluster-slurm--nautilus) plus bas.
+Une invocation directe comme celle-ci tourne en local (utile pour tester
+rapidement une config). Pour les runs de fond (N=64, tous K/instances/seeds),
+voir [Lancer sur le cluster](#lancer-sur-le-cluster-slurm--nautilus) plus bas.
 
 Options principales (description reprise du `--help`) :
 
@@ -40,7 +38,7 @@ Options principales (description reprise du `--help`) :
 - `--algo` : algorithme à utiliser pour l'optimisation guidée (défaut `tabu`, choix `hc_fi, hc_bi, tabu, drils_hc_bi, drils_hc_fi, drils_tabu`)
 - `--start` : stratégie de départ utiliser à chaque itération de la boucle d'optimisation guidée (défaut `rd`)
 - `--alpha` : terme de régularisation L1 (défaut 0.00001)
-- `--perturbation_strength` : this (meta-)parameter is called the strength of the perturbation : drils perturbs the first parent by randomly flipping perturbation_strength * n bits (défaut 0.05)
+- `--perturbation_strength` : force de la perturbation de DRILS (proportion de bits retournés sur le premier parent) (défaut 0.05)
 - `--tabu_factor` : facteur d'exploration de l'aglorithme tabou (N * facteur d'exploration) (défaut 2)
 - `--drils_factor` : facteur d'exploration de l'aglorithme DRILS (N * facteur d'exploration) (défaut 2)
 - `--duplicate_strategy` : stratégie utiliser lorsque l'on tombe sur une solution déjà évaluté pendant la boucle d'optimisation guidée (défaut `random`, choix `ignore, random, skip`)
@@ -97,7 +95,7 @@ du premier fichier traité) :
   locaux.
 
 ```bash
-python3 main.py analyze results/opti_output/64/2/1/lasso_lars/1e-05/tabu
+python3 main.py analyze results/opti_output/64
 ```
 
 ### `evaluate`, évaluer la fidélité d'un modèle après l'optimisation guidée
@@ -115,7 +113,7 @@ Recharge le modèle appris (coefficients sauvegardés ds le fichier d'output) et
   Hamming à la meilleure solution trouvée.
 
 ```bash
-python3 main.py evaluate results/opti_output/64/2/1/lasso_lars/1e-05/tabu
+python3 main.py evaluate results/opti_output/64
 ```
 
 - `path` : chemin vers le(s) dossier(s) ou le(s) fichier(s) d'output de l'optimisation à analyser
@@ -131,7 +129,7 @@ taille de l'échantillon d'entraînement, une courbe par modèle comparé
 (`benchmark/{N}/{K}/{N}_{K}_{num}_{D}_{loss_function}_{seed}_{models-tag}.png`).
 
 ```bash
-python3 main.py compare 64 1 --models lasso_lars lars cg_ridge
+python3 main.py compare <N> <K> --models <model...>
 ```
 
 - `N` : paramètre N du NK-landscape

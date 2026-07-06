@@ -24,7 +24,7 @@ class OptimizeCommand(Command):
         parser.add_argument("--algo", type=str, default='tabu', choices=ALGORITHM_NAMES, help="Algorithme à utiliser pour l'optimisation guidée")
         parser.add_argument("--start", type=str, default='rd', choices=START_STRATEGIES.keys(), help="Stratégie de départ utiliser à chaque itération de la boucle d'optimisation guidée")
         parser.add_argument("--alpha", type=float, default=0.00001, help="terme de régularisation L1")
-        parser.add_argument("--perturbation_strength", type=float, default=0.05, help="this (meta-)parameter is called the strength of the perturbation : drils perturbs the first parent by randomly flipping perturbation_strength * n bits")
+        parser.add_argument("--perturbation_strength", type=float, default=0.05, help="Force de la perturbation de DRILS (proportion de bits retournés sur le premier parent)")
         parser.add_argument("--tabu_factor", type=int, default=2, help="Facteur d'exploration de l'aglorithme tabou (N * facteur d'exploration)")
         parser.add_argument("--drils_factor", type=int, default=2, help="Facteur d'exploration de l'aglorithme DRILS (N * facteur d'exploration)")
         parser.add_argument("--duplicate_strategy", type=str, default='random', choices=DUPLICATE_STRATEGIES, help="Stratégie utiliser lorsque l'on tombe sur une solution déjà évaluté pendant la boucle d'optimisation guidée")
