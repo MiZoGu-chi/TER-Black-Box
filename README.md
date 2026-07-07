@@ -239,7 +239,7 @@ de sections séparées par une ligne `#`.
   pendant qu'il apprend.
 - **Meilleure solution trouvée** : la solution finale retournée par le run.
 - **Coefficients du modèle appris** : les coefficients de Walsh du
-  surrogate en fin de run, utilisés par `evaluate` pour rejouer le modèle.
+  surrogate en fin de run, utilisés par `evaluate` pour reconstruire le modèle.
 - **Historique d'alpha** (seulement pour `lasso_lars_ic`) : évolution de
   l'alpha sélectionné par BIC au fil des réentraînements.
 
