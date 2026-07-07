@@ -117,7 +117,7 @@ python3 main.py evaluate {path}
 
 - `path` : chemin vers le(s) dossier(s) ou le(s) fichier(s) d'output de l'optimisation à analyser
 - `--samples` : nombre de solution de test à générer et tester sur chaque fichiers d'ouput de l'optimisation (défaut 1000)
-- `--sampler` : choix du sampler, bon en réalité on va prendre whitebox tout le temps.. (défaut `whitebox`)
+- `--sampler` : choix du sampler (défaut `whitebox`)
 
 ### `compare`, comparer plusieurs modèles de régression sur une instance
 
@@ -222,12 +222,26 @@ results/opti_output/
   voulu (ou nettoyer les anciens) pour ne pas mélanger plusieurs runs d'une
   même config dans une même moyenne.
 
-Contenu d'un fichier `opti_*.txt` (voir `write_optimization_result` dans
-`src/utils/io_utils.py`) : une ligne d'en-tête (N, K, D, num, seed, algo,
-surrogate, mean_local_optima, alpha, tabu_factor, duplicate_strategy,
-drils_factor), puis 4 sections séparées par `#` : historique
-fitness/budget, historique fidélité prédite/réelle, meilleure solution
-trouvée, coefficients du modèle appris.
+### Lecture des fichiers d'output (`opti_*.txt`)
+
+Un fichier `opti_*.txt` contient une ligne de méta (la config du run) suivie
+de sections séparées par une ligne `#`.
+
+- **Méta** : identifie le run (instance `N`/`K`/`D`/`num`/`seed`, `algo`,
+  `surrogate` utilisés) et sa config : `alpha` (régularisation L1), facteur
+  d'exploration du tabou et de DRILS, stratégie utilisée quand on retombe sur
+  une solution déjà évaluée, plus la moyenne des optima locaux de l'instance
+  (sert de référence dans `analyze`).
+- **Historique fitness/budget** : évolution de la fitness au fil des
+  évaluations, c'est la trajectoire de convergence tracée par `analyze`.
+- **Historique fidélité** : couples prédiction/réalité mesurés en cours
+  d'optimisation, sert à observer la fidélité du modèle de substitution
+  pendant qu'il apprend.
+- **Meilleure solution trouvée** : la solution finale retournée par le run.
+- **Coefficients du modèle appris** : les coefficients de Walsh du
+  surrogate en fin de run, utilisés par `evaluate` pour rejouer le modèle.
+- **Historique d'alpha** (seulement pour `lasso_lars_ic`) : évolution de
+  l'alpha sélectionné par BIC au fil des réentraînements.
 
 ### Graphiques (`results/plots/`)
 
